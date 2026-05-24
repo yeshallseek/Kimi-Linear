@@ -5,7 +5,7 @@ Source: https://github.com/MoonshotAI/Kimi-Linear
 
 ## Summary
 
-Initial reproduction is now substantially stronger. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at reduced paper-like shapes, and reproduced the paper-shape synthetic palindrome direction for KDA vs GDN after reclaiming the GPU: at 20,000 steps KDA reached `0.9237` final eval accuracy while GDN reached `0.0389` under the same shape and LR. The channel-gate probe also isolates why channel-wise KDA gates can retain one channel while forgetting another. Remaining gaps are the Mamba2 20k baseline, paper-shape MQAR, paper-shape 64-stack state tracking, and multi-seed confirmation before UI work.
+Initial reproduction is now substantially stronger, but the learned synthetic result is seed-sensitive. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at reduced paper-like shapes, and got paper-shape palindrome learning at 20,000 steps. Across seeds `42`, `123`, and `7`, KDA learned reliably (`0.8981-0.9641`, mean final accuracy `0.9286`). GDN was bimodal: it failed on seed `42` (`0.0389`) but exceeded KDA on seeds `123` and `7` (`0.9808`, `0.9906`), for mean final accuracy `0.6701`. This supports KDA robustness in this harness, but not a clean per-seed KDA win over GDN. Remaining gaps are the Mamba2 20k baseline, paper-shape MQAR, and paper-shape 64-stack state tracking before UI work.
 
 ## What Was Tested
 
@@ -189,6 +189,23 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
   --mlp-ratio 2 --dtype bfloat16 --lr 1e-3 --seed 42 \
   --output artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e_3_20000steps_freegpu.jsonl
+
+for seed in 123 7; do
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task palindrome --models kda,gdn \
+    --vocab-size 128 --seq-len 256 --steps 20000 --eval-every 2000 --eval-batches 4 \
+    --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+    --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+    --mlp-ratio 2 --dtype bfloat16 --lr 1e-3 --seed "$seed" \
+    --output "artifacts/synthetic_palindrome_paper_shape_bf16_b4_seed${seed}_lr1e_3_20000steps_freegpu.jsonl"
+done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e_3_20000steps_freegpu.jsonl \
+  artifacts/synthetic_palindrome_paper_shape_bf16_b4_seed123_lr1e_3_20000steps_freegpu.jsonl \
+  artifacts/synthetic_palindrome_paper_shape_bf16_b4_seed7_lr1e_3_20000steps_freegpu.jsonl \
+  --output artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e3_20000step_3seed_summary.json \
+  --csv-output artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e3_20000step_3seed_summary.csv
 ```
 
 ## Results
@@ -245,7 +262,9 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   - Stopped root-owned `VLLM::EngineCore` PID `3107306` with user authorization, freeing the RTX 5090 for reproduction.
   - Batch-4, 200-step smoke at the paper small-model shape fit for KDA, GDN, and Mamba2.
   - 2000-step LR grid: KDA's best final accuracy was `0.0389` at lr `1e-3`; GDN's best final accuracy was `0.0143` at lr `1e-3`; Mamba2's best final accuracy was `0.0861` at lr `5e-4`.
-  - 20,000-step extension at lr `1e-3`: KDA reached `0.9237` final eval accuracy and GDN reached `0.0389`, reproducing the Figure 4 palindrome direction for KDA vs GDN at the paper small-model shape.
+  - 20,000-step extension at lr `1e-3`, seed `42`: KDA reached `0.9237` final eval accuracy and GDN reached `0.0389`, reproducing the Figure 4 palindrome direction for that seed.
+  - Multi-seed check at the same setting: KDA final accuracy was `{42: 0.9237, 123: 0.8981, 7: 0.9641}`; GDN final accuracy was `{42: 0.0389, 123: 0.9808, 7: 0.9906}`. Mean final accuracy favored KDA (`0.9286`) over GDN (`0.6701`) because GDN collapsed on seed `42`, but GDN won two of three seeds.
+  - The current interpretation is KDA is more robust on this harness, while GDN can learn the task very well for some seeds. This is a partial, nuanced reproduction rather than a blanket KDA-over-GDN result.
   - Mamba2's 20k segment and a separate Mamba2-only 20k run stayed GPU-active without producing a first eval record for several minutes, so they were terminated and recorded as errors. Artifacts: `artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr_sweep_2000steps_freegpu_summary.json`, `artifacts/synthetic_palindrome_paper_shape_bf16_b4_20000steps_freegpu_summary.json`.
 
 ## Failures and Limitations
@@ -258,7 +277,7 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   - A tiny no-short-conv bf16 run stayed finite but did not learn, and it intentionally omits short convolution, which the paper says is important.
   - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the two-seed easy palindrome LR grid favored GDN on the best mean score.
   - The stack probe uses 16 stacks, not the paper's 64 stacks, and therefore cannot be treated as a paper-scale Figure 4 reproduction.
-  - The free-GPU paper-shape palindrome run reproduces KDA over GDN for seed `42`, but still needs multi-seed confirmation and a resolved Mamba2 20k baseline.
+  - The free-GPU paper-shape palindrome run shows robust KDA learning across three seeds, but GDN beats KDA on two of those seeds; the result is not a clean KDA-over-GDN reproduction.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
 
@@ -287,7 +306,6 @@ Separate official sources from third-party sources and cite URLs/commits used.
 
 ## Next Experiments
 
-- Repeat the paper-shape palindrome 20k run with at least one more seed.
 - Diagnose or replace the Mamba2 20k baseline path; 2k works, but 20k hangs before the first eval record.
 - Add paper-shape MQAR and 64-stack probes now that the palindrome setup fits.
 - Rerun backward operator benchmarks at H=16/D=128 for 2k-64k lengths with the GPU free.

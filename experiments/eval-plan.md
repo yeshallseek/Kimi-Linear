@@ -194,6 +194,29 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
 
 Observed result: the 20k extension reproduced the KDA-vs-GDN palindrome direction for seed `42` (`0.9237` KDA final accuracy vs `0.0389` GDN). Mamba2 learned modestly in the 2k grid but its 20k segment hung before the first eval record and needs a separate fix or replacement baseline command.
 
+Multi-seed confirmation command:
+
+```bash
+for seed in 123 7; do
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task palindrome --models kda,gdn \
+    --vocab-size 128 --seq-len 256 --steps 20000 --eval-every 2000 --eval-batches 4 \
+    --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+    --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+    --mlp-ratio 2 --dtype bfloat16 --lr 1e-3 --seed "$seed" \
+    --output "artifacts/synthetic_palindrome_paper_shape_bf16_b4_seed${seed}_lr1e_3_20000steps_freegpu.jsonl"
+done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e_3_20000steps_freegpu.jsonl \
+  artifacts/synthetic_palindrome_paper_shape_bf16_b4_seed123_lr1e_3_20000steps_freegpu.jsonl \
+  artifacts/synthetic_palindrome_paper_shape_bf16_b4_seed7_lr1e_3_20000steps_freegpu.jsonl \
+  --output artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e3_20000step_3seed_summary.json \
+  --csv-output artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e3_20000step_3seed_summary.csv
+```
+
+Observed result: KDA learned reliably across all three seeds (`0.8981-0.9641`, mean `0.9286`), while GDN was bimodal (`0.0389`, `0.9808`, `0.9906`, mean `0.6701`). Treat this as evidence for KDA robustness on this harness, not a per-seed KDA win.
+
 Controls:
 
 - Same sequence length, batch size, optimizer, seed, hidden size, layer count, and head count.

@@ -320,6 +320,8 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
 
 Observed result: the KDA failure above was traced to a wrapper-level initialization mismatch. FLA's full `KDAPreTrainedModel._init_weights` initializes KDA `dt_bias` from log-uniform time constants, but the bare `KimiDeltaAttention` layer starts with `dt_bias=0`. Adding source-style recurrent initialization makes KDA solve the hard eval slice: full source init reached `0.9988` final / `0.9993` best accuracy at 2000 steps. Ablations show the effect is recurrent-gate-specific: `--source-init-scope recurrent` reached `0.9695` final accuracy at 1000 steps, while `--source-init-scope weights` stayed at `0.00049`, and source-style no-decay groups without recurrent init stayed at `0.0014`. Artifact: `artifacts/synthetic_mqar_zoology_source_init_ablation_summary.json`.
 
+Three-seed follow-up: source-initialized KDA also solved seeds `123` and `7`. Across seeds `42`, `123`, and `7`, final accuracy was `{42: 0.9988, 123: 0.9998, 7: 0.9999}`, mean `0.9995`; best accuracy mean was `0.9997`. Artifact: `artifacts/synthetic_mqar_zoology_source_init_kda_3seed_summary.json`.
+
 Free-GPU paper-shape 64-stack commands:
 
 ```bash

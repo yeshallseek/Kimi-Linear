@@ -31,6 +31,9 @@ def summarize_file(path: Path) -> list[dict[str, Any]]:
     rows = load_jsonl(path)
     metadata = rows[0] if rows[0].get("type") == "metadata" else {}
     args = metadata.get("args", {})
+    source_init_scope = args.get("source_init_scope")
+    if args.get("source_init") is True and source_init_scope is None:
+        source_init_scope = "full"
     models = sorted({row.get("model") for row in rows if row.get("model")})
     summaries: list[dict[str, Any]] = []
     for model in models:
@@ -74,7 +77,7 @@ def summarize_file(path: Path) -> list[dict[str, Any]]:
                 "steps": args.get("steps"),
                 "mqar_train_curriculum": args.get("mqar_train_curriculum"),
                 "source_init": args.get("source_init"),
-                "source_init_scope": args.get("source_init_scope"),
+                "source_init_scope": source_init_scope,
                 "source_param_groups": args.get("source_param_groups"),
                 "param_count": final.get("param_count"),
                 "final_step": final.get("step"),

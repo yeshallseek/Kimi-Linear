@@ -90,6 +90,16 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
   --mlp-ratio 1 --dtype bfloat16 --lr 5e-4 \
   --output artifacts/synthetic_mqar_shortconv_bf16_b2_2000steps.jsonl
+
+for lr in 5e-5 1e-4 5e-4 1e-3; do
+  safe=${lr//-/_}
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task palindrome --models kda,gdn \
+    --vocab-size 16 --seq-len 32 --steps 2000 --eval-every 200 --eval-batches 8 \
+    --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+    --mlp-ratio 1 --dtype bfloat16 --lr "$lr" \
+    --output "artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr${safe}_2000steps.jsonl"
+done
 ```
 
 ## Results
@@ -125,6 +135,11 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   - Same easier palindrome at batch 8 / hidden 96 OOMed in Triton backward for both KDA and GDN while the root-owned vLLM process occupied most VRAM.
   - MQAR, vocab 64, seq_len 64 request padded to actual length 65, hidden 64, batch 2, lr `5e-4`, 2000 steps: both KDA and GDN stayed near chance (`0.0208` final eval accuracy).
   - The synthetic harness now pads sequences shorter than 65 tokens because FLA KDA/GDN switch to fused recurrent mode at `q_len <= 64`, and their training path asserts that chunk mode is required.
+- Tiny palindrome LR grid:
+  - Ran the paper LR grid `{5e-5, 1e-4, 5e-4, 1e-3}` on the memory-safe easy palindrome setting: vocab 16, requested seq_len 32 padded to actual length 65, hidden 64, batch 2, 2000 steps.
+  - This did not reproduce Figure 4's KDA advantage. Best KDA final eval accuracy was `0.3711` at lr `1e-3`; best GDN final eval accuracy was `0.9453` at lr `1e-3`.
+  - Final accuracies by LR: KDA `{5e-5: 0.0508, 1e-4: 0.0645, 5e-4: 0.1621, 1e-3: 0.3711}`; GDN `{5e-5: 0.0586, 1e-4: 0.0684, 5e-4: 0.7832, 1e-3: 0.9453}`.
+  - This is constrained negative evidence for the tiny setting, not a paper-scale result. Artifacts: `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl`.
 
 ## Failures and Limitations
 
@@ -134,7 +149,7 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   - KDA/GDN with fp16 and lr `1e-3` produced NaNs quickly.
   - Mamba2 OOMed under current GPU pressure.
   - A tiny no-short-conv bf16 run stayed finite but did not learn, and it intentionally omits short convolution, which the paper says is important.
-  - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the easiest successful palindrome run slightly favored GDN.
+  - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the easiest LR-grid palindrome run strongly favored GDN.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
 

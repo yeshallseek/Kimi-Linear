@@ -85,6 +85,20 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   --output artifacts/synthetic_palindrome_256.jsonl
 ```
 
+Constrained LR-grid command used while the GPU is occupied:
+
+```bash
+for lr in 5e-5 1e-4 5e-4 1e-3; do
+  safe=${lr//-/_}
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task palindrome --models kda,gdn \
+    --vocab-size 16 --seq-len 32 --steps 2000 --eval-every 200 --eval-batches 8 \
+    --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+    --mlp-ratio 1 --dtype bfloat16 --lr "$lr" \
+    --output "artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr${safe}_2000steps.jsonl"
+done
+```
+
 Controls:
 
 - Same sequence length, batch size, optimizer, seed, hidden size, layer count, and head count.

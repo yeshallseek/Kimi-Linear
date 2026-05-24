@@ -5,7 +5,7 @@ Source: https://github.com/MoonshotAI/Kimi-Linear
 
 ## Summary
 
-Initial reproduction is partially successful. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at a reduced, paper-like forward-only shape through 4096 tokens, and added a CPU recurrence probe that isolates why channel-wise KDA gates can retain one channel while forgetting another. At 8192 tokens, KDA still ran while DPLR OOMed under the same occupied-GPU constraint, which is useful evidence for the memory-efficiency side of the claim. I also stabilized several tiny bf16 short-conv synthetic runs, but those runs did not reproduce the Figure 4 KDA advantage.
+Initial reproduction is partially successful. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at a reduced, paper-like forward-only shape through 4096 tokens, and added a CPU recurrence probe that isolates why channel-wise KDA gates can retain one channel while forgetting another. At 8192 tokens, KDA still ran while DPLR OOMed under the same occupied-GPU constraint, which is useful evidence for the memory-efficiency side of the claim. I also stabilized several tiny bf16 short-conv synthetic runs, but those runs did not reproduce the Figure 4 KDA advantage. A batch-1 paper-shape synthetic smoke confirms the current occupied GPU cannot train KDA/GDN at the paper's small synthetic model shape yet.
 
 ## What Was Tested
 
@@ -156,6 +156,19 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   artifacts/synthetic_stack_shortconv_bf16_b2_seed123_lr1e_3_2000steps.jsonl \
   --output artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.json \
   --csv-output artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.csv
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task palindrome --models kda,gdn,mamba2 \
+  --vocab-size 128 --seq-len 256 --steps 20 --eval-every 10 --eval-batches 1 \
+  --batch-size 1 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+  --mlp-ratio 2 --dtype bfloat16 --lr 5e-4 --seed 42 \
+  --output artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl \
+  --output artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps_summary.json \
+  --csv-output artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps_summary.csv
 ```
 
 ## Results
@@ -203,6 +216,11 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - The local run uses a smaller 16-stack setup, not the paper's 64-stack task: vocab 128, seq_len 96, hidden 64, batch 2, lr `1e-3`, 2000 steps, seeds `42` and `123`.
   - Both KDA and GDN learned, but GDN was higher on the two-seed mean: final eval accuracy `0.9428` for GDN vs `0.8311` for KDA.
   - This expands Figure 4 coverage to the state-tracking task, but remains constrained negative evidence. Artifact: `artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.json`.
+- Paper-shape synthetic feasibility smoke:
+  - Ran the paper's small synthetic model shape at batch 1 for 20 steps: 2 layers, hidden 256, 2 heads, head_dim 128, seq_len 256, vocab 128, bf16, lr `5e-4`.
+  - KDA and GDN both OOMed during Triton backward under the current occupied-GPU constraint.
+  - Mamba2 completed the smoke with final eval accuracy `0.0079`, essentially chance for vocab 128.
+  - This confirms the paper-shape KDA/GDN synthetic reproduction should wait until the root-owned vLLM process frees VRAM. Artifacts: `artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl`, `artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps_summary.json`.
 
 ## Failures and Limitations
 
@@ -214,6 +232,7 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - A tiny no-short-conv bf16 run stayed finite but did not learn, and it intentionally omits short convolution, which the paper says is important.
   - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the two-seed easy palindrome LR grid favored GDN on the best mean score.
   - The stack probe uses 16 stacks, not the paper's 64 stacks, and therefore cannot be treated as a paper-scale Figure 4 reproduction.
+  - A batch-1 paper-shape palindrome smoke OOMed for KDA/GDN while most VRAM was held by the root-owned vLLM process, so the paper-size learned synthetic result still needs a free-GPU rerun.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
 
@@ -243,6 +262,6 @@ Separate official sources from third-party sources and cite URLs/commits used.
 ## Next Experiments
 
 - Free the GPU or move runs to a machine without the current vLLM process, then rerun backward operator benchmarks at H=16/D=128 for 2k-64k lengths.
-- Stabilize synthetic probes with bf16/float32, short convolution enabled, and a small LR sweep over `{5e-5, 1e-4, 5e-4, 1e-3}` as in the paper.
-- Add an MQAR probe after palindrome runs are stable.
+- Free the GPU, then rerun paper-shape synthetic probes for KDA/GDN/Mamba2 at batch 1+ and extend to enough steps for learning.
+- Add paper-shape MQAR and 64-stack probes after the palindrome feasibility run fits.
 - Build the UI only after the synthetic learning result is credible.

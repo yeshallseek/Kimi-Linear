@@ -1,0 +1,72 @@
+{
+  "aggregates": [
+    {
+      "actual_seq_len": 255,
+      "batch_size": 1,
+      "dtype": "bfloat16",
+      "hidden_size": 256,
+      "lr": 0.0005,
+      "max_final_eval_accuracy": 0.007874015748031496,
+      "mean_best_eval_accuracy": 0.007874015748031496,
+      "mean_final_eval_accuracy": 0.007874015748031496,
+      "mean_final_eval_loss": 5.03125,
+      "min_final_eval_accuracy": 0.007874015748031496,
+      "model": "mamba2",
+      "num_seeds": 1,
+      "requested_seq_len": 256,
+      "seeds": [
+        42
+      ],
+      "task": "palindrome",
+      "vocab_size": 128
+    }
+  ],
+  "inputs": [
+    "artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl"
+  ],
+  "results": [
+    {
+      "error": "Triton Error [CUDA]: out of memory",
+      "error_type": "RuntimeError",
+      "file": "artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl",
+      "lr": 0.0005,
+      "model": "gdn",
+      "seed": 42,
+      "status": "error",
+      "task": "palindrome"
+    },
+    {
+      "error": "Triton Error [CUDA]: out of memory",
+      "error_type": "RuntimeError",
+      "file": "artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl",
+      "lr": 0.0005,
+      "model": "kda",
+      "seed": 42,
+      "status": "error",
+      "task": "palindrome"
+    },
+    {
+      "actual_seq_len": 255,
+      "batch_size": 1,
+      "best_eval_accuracy": 0.007874015748031496,
+      "best_eval_loss": 5.03125,
+      "best_eval_step": 1,
+      "dtype": "bfloat16",
+      "file": "artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl",
+      "final_eval_accuracy": 0.007874015748031496,
+      "final_eval_loss": 5.03125,
+      "final_step": 20,
+      "final_train_loss": 5.03125,
+      "hidden_size": 256,
+      "lr": 0.0005,
+      "model": "mamba2",
+      "param_count": 1520928,
+      "requested_seq_len": 256,
+      "seed": 42,
+      "status": "ok",
+      "steps": 20,
+      "task": "palindrome",
+      "vocab_size": 128
+    }
+  ]
+}

@@ -150,6 +150,25 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   --csv-output artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.csv
 ```
 
+Paper-shape feasibility smoke under the occupied-GPU constraint:
+
+```bash
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task palindrome --models kda,gdn,mamba2 \
+  --vocab-size 128 --seq-len 256 --steps 20 --eval-every 10 --eval-batches 1 \
+  --batch-size 1 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+  --mlp-ratio 2 --dtype bfloat16 --lr 5e-4 --seed 42 \
+  --output artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl \
+  --output artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps_summary.json \
+  --csv-output artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps_summary.csv
+```
+
+Observed result: KDA and GDN OOMed during backward; Mamba2 completed the 20-step smoke at chance accuracy. Rerun this command after freeing the GPU before treating Tier 2 as paper-shape coverage.
+
 Controls:
 
 - Same sequence length, batch size, optimizer, seed, hidden size, layer count, and head count.

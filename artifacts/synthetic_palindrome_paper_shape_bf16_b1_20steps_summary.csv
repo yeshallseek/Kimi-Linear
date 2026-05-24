@@ -1,0 +1,4 @@
+actual_seq_len,batch_size,best_eval_accuracy,best_eval_loss,best_eval_step,dtype,error,error_type,file,final_eval_accuracy,final_eval_loss,final_step,final_train_loss,hidden_size,lr,model,param_count,requested_seq_len,seed,status,steps,task,vocab_size
+,,,,,,Triton Error [CUDA]: out of memory,RuntimeError,artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl,,,,,,0.0005,gdn,,,42,error,,palindrome,
+,,,,,,Triton Error [CUDA]: out of memory,RuntimeError,artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl,,,,,,0.0005,kda,,,42,error,,palindrome,
+255,1,0.007874015748031496,5.03125,1,bfloat16,,,artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps.jsonl,0.007874015748031496,5.03125,20,5.03125,256,0.0005,mamba2,1520928,256,42,ok,20,palindrome,128

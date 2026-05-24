@@ -43,6 +43,15 @@ def clear_memory() -> None:
         torch.cuda.empty_cache()
 
 
+def clear_grads(*tensors: torch.Tensor) -> None:
+    for tensor in tensors:
+        tensor.grad = None
+
+
+def dumps_record(record: dict) -> str:
+    return json.dumps(record, sort_keys=True, allow_nan=False)
+
+
 def run_one(args: argparse.Namespace, provider: str, T: int) -> dict:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for FLA/Triton operator benchmarking.")
@@ -73,6 +82,8 @@ def run_one(args: argparse.Namespace, provider: str, T: int) -> dict:
         beta = torch.randn(B, T, H, dtype=dtype, device=device).sigmoid().requires_grad_(True)
 
         def fn() -> torch.Tensor:
+            if args.backward:
+                clear_grads(q, k, v, g, beta)
             out = chunk_gated_delta_rule(q, k, v, g, beta, use_qk_l2norm_in_kernel=True)[0]
             if args.backward:
                 out.backward(do, retain_graph=False)
@@ -86,6 +97,8 @@ def run_one(args: argparse.Namespace, provider: str, T: int) -> dict:
         beta = torch.randn(B, T, H, dtype=dtype, device=device).sigmoid().requires_grad_(True)
 
         def fn() -> torch.Tensor:
+            if args.backward:
+                clear_grads(q, k, v, g, beta)
             out = chunk_kda(q, k, v, g, beta, use_qk_l2norm_in_kernel=True)[0]
             if args.backward:
                 out.backward(do, retain_graph=False)
@@ -100,6 +113,8 @@ def run_one(args: argparse.Namespace, provider: str, T: int) -> dict:
         g = F.logsigmoid(torch.randn(B, T, H, D, dtype=dtype, device=device)).requires_grad_(True)
 
         def fn() -> torch.Tensor:
+            if args.backward:
+                clear_grads(q, k, a, b, v, g)
             out = chunk_dplr_delta_rule(q=q, k=k, v=v, a=a, b=b, gk=g)[0]
             if args.backward:
                 out.backward(do, retain_graph=False)
@@ -113,6 +128,8 @@ def run_one(args: argparse.Namespace, provider: str, T: int) -> dict:
         v = torch.randn(B, T, H, D, dtype=dtype, device=device).requires_grad_(True)
 
         def fn() -> torch.Tensor:
+            if args.backward:
+                clear_grads(q, k, v)
             out = flash_attn_func(q, k, v)
             if args.backward:
                 out.backward(do, retain_graph=False)
@@ -177,7 +194,8 @@ def main() -> None:
     }
 
     with args.output.open("w", encoding="utf-8") as f:
-        f.write(json.dumps(header, sort_keys=True) + "\n")
+        f.write(dumps_record(header) + "\n")
+        f.flush()
         for T in lengths:
             for provider in providers:
                 clear_memory()
@@ -192,8 +210,8 @@ def main() -> None:
                         "error": str(exc),
                         "traceback": traceback.format_exc(limit=8),
                     }
-                print(json.dumps(record, sort_keys=True))
-                f.write(json.dumps(record, sort_keys=True) + "\n")
+                print(dumps_record(record))
+                f.write(dumps_record(record) + "\n")
                 f.flush()
 
 

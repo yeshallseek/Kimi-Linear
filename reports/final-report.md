@@ -5,7 +5,7 @@ Source: https://github.com/MoonshotAI/Kimi-Linear
 
 ## Summary
 
-Initial reproduction is partially successful. I reproduced KDA kernel correctness against FLA's naive recurrent reference and reproduced the operator-speed direction for KDA vs DPLR at a reduced, paper-like forward-only shape. I did not yet reproduce the synthetic learning curves from Figure 4; the current GPU is mostly occupied by a root-owned vLLM process, and the first tiny fp16 palindrome run was numerically unstable.
+Initial reproduction is partially successful. I reproduced KDA kernel correctness against FLA's naive recurrent reference and reproduced the operator-speed direction for KDA vs DPLR at a reduced, paper-like forward-only shape through 4096 tokens. At 8192 tokens, KDA still ran while DPLR OOMed under the same occupied-GPU constraint, which is useful evidence for the memory-efficiency side of the claim. I did not yet reproduce the synthetic learning curves from Figure 4.
 
 ## What Was Tested
 
@@ -13,7 +13,7 @@ Initial reproduction is partially successful. I reproduced KDA kernel correctnes
 - Installed FLA path through conda `kimi-linear`: `flash-linear-attention==0.4.0`, `fla-core==0.4.0`.
 - KDA correctness: `chunk_kda` and `fused_recurrent_kda` vs `naive_recurrent_kda`.
 - KDA-vs-DPLR operator latency at two local scales.
-- A first synthetic palindrome training harness using tiny KDA/GDN/Mamba2-style mixers.
+- A first synthetic palindrome training harness using tiny KDA/GDN/Mamba2-style mixers, plus a constrained no-conv bf16 smoke variant.
 
 ## Commands
 
@@ -47,6 +47,19 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   --batch-size 4 --hidden-size 128 --heads 2 --head-dim 64 \
   --mamba-head-dim 64 --mamba-state-size 64 --dtype float16 \
   --output artifacts/synthetic_palindrome_smoke.jsonl
+
+conda run -n kimi-linear python scripts/kda_operator_benchmark.py \
+  --providers kda,dplr --lengths 8192 \
+  --heads 16 --head-dim 128 --dtype float16 \
+  --warmup 2 --rep 5 --forward-only \
+  --output artifacts/kda_operator_benchmark_forward_h16d128_8192.jsonl
+
+conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task palindrome --models kda,gdn \
+  --seq-len 64 --steps 100 --eval-every 20 --eval-batches 4 \
+  --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+  --no-short-conv --mlp-ratio 1 --dtype bfloat16 --lr 5e-4 \
+  --output artifacts/synthetic_palindrome_tiny_noconv_bf16_100steps.jsonl
 ```
 
 ## Results
@@ -60,7 +73,12 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   - T=1024: KDA `0.1595 ms`, DPLR `0.1638 ms` (near tie).
   - T=2048: KDA `0.2212 ms`, DPLR `0.3912 ms` (`1.77x` KDA speedup).
   - T=4096: KDA `0.4619 ms`, DPLR `0.8607 ms` (`1.86x` KDA speedup).
+  - T=8192: KDA `1.0256 ms`; DPLR OOMed trying to allocate an additional 256 MiB while KDA fit. This is a memory-efficiency datapoint rather than a latency-ratio datapoint.
   - This partially reproduces the paper's operator-efficiency claim direction, at smaller lengths and forward-only due to current VRAM constraints.
+- Tiny no-short-conv bf16 synthetic palindrome:
+  - 2-step smoke completed for KDA and GDN without NaNs.
+  - 100-step run stayed finite but did not learn; final eval accuracy was `0.0078` for KDA and `0.0039` for GDN, near chance for a 128-token vocabulary.
+  - This validates the low-memory training loop but does not reproduce Figure 4.
 
 ## Failures and Limitations
 
@@ -69,7 +87,7 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
 - Synthetic palindrome training is not reproduced yet:
   - KDA/GDN with fp16 and lr `1e-3` produced NaNs quickly.
   - Mamba2 OOMed under current GPU pressure.
-  - A lower-lr bf16 retry was stopped because it did not reach the first metric in a useful time while the GPU was constrained.
+  - A tiny no-short-conv bf16 run stayed finite but did not learn, and it intentionally omits short convolution, which the paper says is important.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
 
 ## Reproducibility Notes
@@ -96,6 +114,6 @@ Separate official sources from third-party sources and cite URLs/commits used.
 ## Next Experiments
 
 - Free the GPU or move runs to a machine without the current vLLM process, then rerun backward operator benchmarks at H=16/D=128 for 2k-64k lengths.
-- Stabilize synthetic probes with bf16/float32, lower learning rates, and a small LR sweep over `{5e-5, 1e-4, 5e-4, 1e-3}` as in the paper.
+- Stabilize synthetic probes with bf16/float32, short convolution enabled, and a small LR sweep over `{5e-5, 1e-4, 5e-4, 1e-3}` as in the paper.
 - Add an MQAR probe after palindrome runs are stable.
 - Build the UI only after the synthetic learning result is credible.

@@ -49,6 +49,13 @@ def dumps_record(record: dict) -> str:
     return json.dumps(sanitize_json(record), sort_keys=True, allow_nan=False)
 
 
+def flush_record(handle, record: dict) -> None:
+    line = dumps_record(record)
+    print(line)
+    handle.write(line + "\n")
+    handle.flush()
+
+
 def parse_models(raw: str) -> list[str]:
     models = [m.strip().lower() for m in raw.split(",") if m.strip()]
     allowed = {"kda", "gdn", "mamba2"}
@@ -230,6 +237,8 @@ def train_one(model_name: str, args: argparse.Namespace, device: torch.device, d
         optimizer.zero_grad(set_to_none=True)
         out = model(input_ids=input_ids, labels=labels, use_cache=False)
         loss = out.loss
+        if not torch.isfinite(loss):
+            raise FloatingPointError(f"non-finite loss at step {step}: {float(loss.detach().cpu())}")
         loss.backward()
         if args.grad_clip > 0:
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
@@ -249,7 +258,6 @@ def train_one(model_name: str, args: argparse.Namespace, device: torch.device, d
                 **metrics,
             }
             records.append(record)
-            print(dumps_record(record))
 
     return records
 
@@ -313,6 +321,7 @@ def main() -> None:
 
     with args.output.open("w", encoding="utf-8") as f:
         f.write(dumps_record(metadata_record) + "\n")
+        f.flush()
         for model_name in parse_models(args.models):
             try:
                 records = train_one(model_name, args, device, dtype)
@@ -325,12 +334,10 @@ def main() -> None:
                     "error": str(exc),
                     "traceback": traceback.format_exc(limit=8),
                 }
-                print(dumps_record(record))
                 records = [record]
                 torch.cuda.empty_cache()
             for record in records:
-                f.write(dumps_record(record) + "\n")
-                f.flush()
+                flush_record(f, record)
 
 
 if __name__ == "__main__":

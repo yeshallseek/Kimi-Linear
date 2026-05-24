@@ -289,6 +289,21 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
 
 Observed result: the original local MQAR layout was not faithful to Zoology. The corrected `--mqar-layout zoology` path uses vocab 8192, upper-half value tokens, power-law query gaps, random non-query fillers, and one query per key. At paper task shape (`vocab=8192`, `seq_len=256`, `num_pairs=64`), KDA/GDN/Mamba2 stayed at the value-vocabulary baseline through 20,000 steps: final accuracy was KDA `0.00049`, GDN `0.0`, and Mamba2 `0.0`. Source-style tied embeddings, `std=0.02` init, MLP ratio 4, higher LRs, batch 64, and `num_pairs=16` still did not produce a high-vocab retrieval signal by 2000 steps. The tiny positive control (`vocab=256`, `seq_len=64`, `num_pairs=4`, batch 64) did learn: GDN reached `0.9971` final accuracy and KDA reached `0.2612`. Treat MQAR as unresolved rather than reproduced.
 
+Zoology train-mix curriculum diagnostic:
+
+```bash
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task mqar --mqar-layout zoology --mqar-train-curriculum zoology_figure3 \
+  --tie-embeddings --init-std 0.02 --models kda,gdn \
+  --vocab-size 8192 --seq-len 256 --num-pairs 64 \
+  --steps 2000 --eval-every 200 --eval-batches 2 \
+  --batch-size 128 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mlp-ratio 4 --dtype bfloat16 --lr 1e-3 --seed 42 \
+  --output artifacts/synthetic_mqar_zoology_curriculum_tied_init002_mlp4_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl
+```
+
+Observed result: the curriculum matches Zoology's train slice weights but evaluates on the hard `seq_len=256, num_pairs=64` target. This made the high-vocab task learnable for GDN: final eval accuracy was `0.9838` at 2000 steps. KDA stayed near chance in the same run (`0.0016` final, best `0.0027`). A KDA-only LR sweep at `1e-3`, `3.16e-3`, `1e-2`, and `3.16e-2` with source-style weight decay `0.1` also stayed near chance. This strengthens the current conclusion: the local harness can now solve high-vocab MQAR, but it does so with GDN rather than KDA, so the KDA MQAR finding is still not reproduced. Artifact: `artifacts/synthetic_mqar_zoology_curriculum_diagnostics_summary.json`.
+
 Free-GPU paper-shape 64-stack commands:
 
 ```bash

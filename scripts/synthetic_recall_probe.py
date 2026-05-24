@@ -30,6 +30,19 @@ PUSH = DATA_START
 POP = DATA_START + 1
 
 
+MQAR_CURRICULA = {
+    "zoology_figure3": (
+        # Matches HazyResearch Zoology's arxiv24_based_figure3 MQAR train mix.
+        # The third field is the source num_examples, used as sampling weight.
+        (64, 4, 100_000),
+        (128, 8, 20_000),
+        (256, 16, 20_000),
+        (256, 32, 20_000),
+        (256, 64, 20_000),
+    ),
+}
+
+
 def package_version(name: str) -> str | None:
     try:
         return metadata.version(name)
@@ -158,7 +171,29 @@ def make_mqar_zoology_batch(args: argparse.Namespace, device: torch.device) -> t
     return input_ids, labels
 
 
-def make_mqar_batch(args: argparse.Namespace, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+def choose_mqar_training_args(args: argparse.Namespace, device: torch.device) -> argparse.Namespace:
+    if args.mqar_train_curriculum == "none":
+        return args
+    if args.mqar_layout != "zoology":
+        raise ValueError("--mqar-train-curriculum requires --mqar-layout zoology.")
+    specs = MQAR_CURRICULA[args.mqar_train_curriculum]
+    weights = torch.tensor([weight for _, _, weight in specs], dtype=torch.float32, device=device)
+    idx = int(torch.multinomial(weights, 1).detach().cpu())
+    seq_len, num_pairs, _ = specs[idx]
+    updated = vars(args).copy()
+    updated["seq_len"] = seq_len
+    updated["num_pairs"] = num_pairs
+    updated["num_queries"] = None
+    return argparse.Namespace(**updated)
+
+
+def make_mqar_batch(
+    args: argparse.Namespace,
+    device: torch.device,
+    training: bool = False,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    if training:
+        args = choose_mqar_training_args(args, device)
     if args.mqar_layout == "contiguous":
         return make_mqar_contiguous_batch(args, device)
     if args.mqar_layout == "zoology":
@@ -223,11 +258,15 @@ def pad_to_chunk_training_minimum(
     return torch.cat([input_ids, input_pad], dim=1), torch.cat([labels, label_pad], dim=1)
 
 
-def make_batch(args: argparse.Namespace, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+def make_batch(
+    args: argparse.Namespace,
+    device: torch.device,
+    training: bool = False,
+) -> tuple[torch.Tensor, torch.Tensor]:
     if args.task == "palindrome":
         return pad_to_chunk_training_minimum(*make_palindrome_batch(args, device))
     if args.task == "mqar":
-        return pad_to_chunk_training_minimum(*make_mqar_batch(args, device))
+        return pad_to_chunk_training_minimum(*make_mqar_batch(args, device, training=training))
     if args.task == "stack":
         return pad_to_chunk_training_minimum(*make_stack_batch(args, device))
     raise ValueError(f"Unsupported task: {args.task}")
@@ -331,8 +370,10 @@ def evaluate(model, args: argparse.Namespace, device: torch.device, batches: int
     total_correct = 0
     total_targets = 0
     total_loss = 0.0
+    actual_seq_len = None
     for _ in range(batches):
         input_ids, labels = make_batch(args, device)
+        actual_seq_len = int(input_ids.shape[1])
         out = model(input_ids=input_ids, labels=labels, use_cache=False)
         total_loss += float(out.loss.detach().cpu())
         logits = model(input_ids=input_ids, use_cache=False).logits
@@ -343,6 +384,7 @@ def evaluate(model, args: argparse.Namespace, device: torch.device, batches: int
         total_targets += int(target_mask.sum().detach().cpu())
     model.train()
     return {
+        "actual_seq_len": actual_seq_len,
         "eval_loss": total_loss / batches,
         "eval_accuracy": total_correct / max(1, total_targets),
         "eval_targets": total_targets,
@@ -362,7 +404,7 @@ def train_one(model_name: str, args: argparse.Namespace, device: torch.device, d
     start = time.perf_counter()
 
     for step in range(1, args.steps + 1):
-        input_ids, labels = make_batch(args, device)
+        input_ids, labels = make_batch(args, device, training=True)
         optimizer.zero_grad(set_to_none=True)
         out = model(input_ids=input_ids, labels=labels, use_cache=False)
         loss = out.loss
@@ -383,7 +425,7 @@ def train_one(model_name: str, args: argparse.Namespace, device: torch.device, d
                 "train_loss": float(loss.detach().cpu()),
                 "elapsed_s": time.perf_counter() - start,
                 "param_count": param_count,
-                "actual_seq_len": int(input_ids.shape[1]),
+                "train_actual_seq_len": int(input_ids.shape[1]),
                 **metrics,
             }
             records.append(record)
@@ -424,6 +466,7 @@ def main() -> None:
     parser.add_argument("--mqar-power-a", type=float, default=0.01)
     parser.add_argument("--mqar-num-passes", type=int, default=1)
     parser.add_argument("--mqar-random-fillers", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--mqar-train-curriculum", choices=["none", *MQAR_CURRICULA], default="none")
     parser.add_argument("--num-stacks", type=int, default=16)
     parser.add_argument("--stack-push-prob", type=float, default=0.6)
     parser.add_argument("--mamba-head-dim", type=int, default=128)

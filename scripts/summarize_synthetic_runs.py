@@ -62,6 +62,7 @@ def summarize_file(path: Path) -> list[dict[str, Any]]:
                 "task": metadata.get("task") or final.get("task"),
                 "model": model,
                 "lr": args.get("lr"),
+                "weight_decay": args.get("weight_decay"),
                 "seed": args.get("seed"),
                 "status": "ok",
                 "requested_seq_len": args.get("seq_len"),
@@ -71,6 +72,7 @@ def summarize_file(path: Path) -> list[dict[str, Any]]:
                 "batch_size": args.get("batch_size"),
                 "dtype": args.get("dtype"),
                 "steps": args.get("steps"),
+                "mqar_train_curriculum": args.get("mqar_train_curriculum"),
                 "param_count": final.get("param_count"),
                 "final_step": final.get("step"),
                 "final_eval_accuracy": final.get("eval_accuracy"),
@@ -106,18 +108,32 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             row.get("task"),
             row.get("model"),
             row.get("lr"),
+            row.get("weight_decay"),
             row.get("requested_seq_len"),
             row.get("actual_seq_len"),
             row.get("vocab_size"),
             row.get("hidden_size"),
             row.get("batch_size"),
             row.get("dtype"),
+            row.get("mqar_train_curriculum"),
         )
         groups.setdefault(key, []).append(row)
 
     aggregates: list[dict[str, Any]] = []
     for key, group in sorted(groups.items(), key=lambda item: tuple(str(part) for part in item[0])):
-        task, model, lr, requested_seq_len, actual_seq_len, vocab_size, hidden_size, batch_size, dtype = key
+        (
+            task,
+            model,
+            lr,
+            weight_decay,
+            requested_seq_len,
+            actual_seq_len,
+            vocab_size,
+            hidden_size,
+            batch_size,
+            dtype,
+            mqar_train_curriculum,
+        ) = key
         final_acc = [row["final_eval_accuracy"] for row in group if row.get("final_eval_accuracy") is not None]
         best_acc = [row["best_eval_accuracy"] for row in group if row.get("best_eval_accuracy") is not None]
         final_loss = [row["final_eval_loss"] for row in group if row.get("final_eval_loss") is not None]
@@ -126,12 +142,14 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "task": task,
                 "model": model,
                 "lr": lr,
+                "weight_decay": weight_decay,
                 "requested_seq_len": requested_seq_len,
                 "actual_seq_len": actual_seq_len,
                 "vocab_size": vocab_size,
                 "hidden_size": hidden_size,
                 "batch_size": batch_size,
                 "dtype": dtype,
+                "mqar_train_curriculum": mqar_train_curriculum,
                 "num_seeds": len({row.get("seed") for row in group}),
                 "seeds": sorted(row.get("seed") for row in group),
                 "mean_final_eval_accuracy": mean_or_none(final_acc),

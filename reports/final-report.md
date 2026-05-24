@@ -352,6 +352,11 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - Corrected paper-shape MQAR (`vocab=8192`, `seq_len=256`, `num_pairs=64`) fit on GPU but did not learn retrieval. The 20,000-step lr `1e-3` run ended at KDA `0.00049`, GDN `0.0`, and Mamba2 `0.0` final accuracy, with loss around `log(4096)`, meaning the models learned the value-token half but not key-value lookup.
   - Source-style tied embeddings, `std=0.02` init, MLP ratio 4, high LRs, batch 64, and a `num_pairs=16` high-vocab slice still stayed at chance by 2000 steps.
   - A tiny positive control did learn Zoology-style MQAR: with `vocab=256`, `seq_len=64`, `num_pairs=4`, batch 64, GDN reached `0.9971` final accuracy and KDA reached `0.2612` by 2000 steps. This proves the corrected harness can learn easy MQAR, but the paper-shape/high-vocab MQAR result remains unresolved. Artifact: `artifacts/synthetic_mqar_zoology_tied_diagnostics_summary.json`.
+- Zoology curriculum MQAR diagnostic:
+  - Added `--mqar-train-curriculum zoology_figure3`, matching the official Zoology train mix weights while evaluating on the hard `seq_len=256, num_pairs=64` target.
+  - This made high-vocab MQAR learnable in the local harness, but in the wrong direction for the paper claim: GDN reached `0.9838` final accuracy at 2000 steps, while KDA stayed near chance (`0.0016` final, best `0.0027`) under the same run.
+  - KDA-only checks at the higher Zoology LR scale (`1e-3`, `3.16e-3`, `1e-2`, `3.16e-2`) with weight decay `0.1` also stayed near chance.
+  - This is now a stronger MQAR non-reproduction: the task/generator can be solved, but the local KDA wrapper does not solve it under the tested source-style settings. Artifact: `artifacts/synthetic_mqar_zoology_curriculum_diagnostics_summary.json`.
 - Free-GPU paper-shape 64-stack reproduction:
   - Used 64 stacks and actual sequence length 255, matching the paper-shape synthetic setting closely within the local generator.
   - Batch-4, 200-step smoke fit for KDA, GDN, and Mamba2. At 200 steps, GDN was ahead (`0.2165`) with KDA lower but learning (`0.1280`) and Mamba2 near chance (`0.0197`).
@@ -370,7 +375,7 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the two-seed easy palindrome LR grid favored GDN on the best mean score.
   - The early stack probe used 16 stacks, not the paper's 64 stacks. The later free-GPU 64-stack run is closer to paper shape and gives a KDA final-quality edge over three seeds.
   - The free-GPU paper-shape palindrome run shows robust KDA learning across three seeds, but GDN beats KDA on two of those seeds; the result is not a clean KDA-over-GDN reproduction.
-  - The free-GPU paper-shape MQAR run is negative for KDA so far. Generator validation found and fixed a major mismatch with Zoology MQAR, but the corrected high-vocab task still does not learn under this local tiny-model wrapper and training budget. The tiny MQAR positive control works, so the remaining gap is specific to paper-shape/high-vocab MQAR.
+  - The free-GPU paper-shape MQAR run is negative for KDA so far. Generator validation found and fixed a major mismatch with Zoology MQAR. A Zoology-style curriculum makes high-vocab MQAR learnable for GDN, but KDA still does not learn the hard eval slice under the tested settings. The remaining gap is now specific to KDA's local wrapper/optimization on high-vocab MQAR, not to the data generator being dead.
   - The free-GPU paper-shape 64-stack run favors KDA on final accuracy, but GDN converges faster early, so it is not a clean reproduction of a KDA convergence-speed advantage.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
@@ -396,6 +401,7 @@ Separate official sources from third-party sources and cite URLs/commits used.
 - Official Instruct model: https://huggingface.co/moonshotai/Kimi-Linear-48B-A3B-Instruct at `e1df551a447157d4658b573f9a695d57658590e9`
 - Official Base model: https://huggingface.co/moonshotai/Kimi-Linear-48B-A3B-Base at `3b171c17bfc4ee348599b6781a2ca8715c21c8dc`
 - Official FLA KDA implementation: https://github.com/fla-org/flash-linear-attention/tree/main/fla/ops/kda; local clone observed at `1c403c3a82896ca0dd2ef8a952a85e3bdbffc941`
+- MQAR task reference: https://github.com/HazyResearch/zoology, inspected `zoology/data/multiquery_ar.py` and `zoology/experiments/paper_configs/arxiv24_based_figure3/configs.py`
 - vLLM Kimi-Linear recipe: https://docs.vllm.ai/projects/recipes/en/latest/moonshotai/Kimi-Linear.html
 
 ## Next Experiments

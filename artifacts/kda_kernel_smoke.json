@@ -1,0 +1,43 @@
+{
+  "env": {
+    "fla_core": "0.4.0",
+    "flash_linear_attention": "0.4.0",
+    "gpu": {
+      "free_memory_mib": 534,
+      "name": "NVIDIA GeForce RTX 5090",
+      "total_memory_mib": 32109
+    },
+    "python": "3.11.14",
+    "torch": "2.9.0+cu128",
+    "torch_cuda": "12.8",
+    "triton": "3.5.0"
+  },
+  "errors": {
+    "chunk_final_state": 0.00013807415962219238,
+    "chunk_grad_dbeta": 0.00390625,
+    "chunk_grad_dg": 0.001979231834411621,
+    "chunk_grad_dh0": 0.00032851099967956543,
+    "chunk_grad_dk": 0.0009765625,
+    "chunk_grad_dq": 0.00390625,
+    "chunk_grad_dv": 0.001953125,
+    "chunk_o": 0.0009765625,
+    "recurrent_final_state": 5.7056546211242676e-05,
+    "recurrent_o": 0.0009765625
+  },
+  "ok": true,
+  "shape": {
+    "batch_size": 1,
+    "dtype": "float16",
+    "head_dim": 64,
+    "heads": 1,
+    "scale": 1.0,
+    "seq_len": 64,
+    "tma": false
+  },
+  "timing_ms": {
+    "chunk_forward_backward": 91838.31795910373,
+    "fused_recurrent_forward": 194.77011496201158,
+    "naive_recurrent_forward_backward": 179.8112120013684
+  },
+  "tolerance": 0.05
+}

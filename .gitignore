@@ -1,0 +1,14 @@
+
+# ML experiment artifacts
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+artifacts/checkpoints/
+artifacts/datasets/
+artifacts/models/
+artifacts/tmp/
+*.safetensors
+*.ckpt
+*.pt
+*.pth

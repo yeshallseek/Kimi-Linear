@@ -346,6 +346,12 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - 2000-step LR grid: best final accuracy was KDA `0.0272` at lr `1e-4`, GDN `0.0252` at lr `1e-3`, and Mamba2 `0.0696` at lr `5e-4`.
   - 20,000-step KDA/GDN extension at lr `1e-3`, seed `42`: KDA remained near chance (`0.0131` final accuracy, best `0.0202`), while GDN rose modestly (`0.0917` final accuracy, best `0.0938`) but did not solve the task.
   - This is a negative MQAR reproduction for KDA in the current harness, and a weak positive optimization signal for GDN. Artifacts: `artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr_sweep_2000steps_freegpu_summary.json`, `artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e3_20000steps_freegpu_summary.json`.
+- Corrected Zoology-style MQAR audit:
+  - Inspected HazyResearch Zoology's `zoology/data/multiquery_ar.py`, the task family cited by the paper. The prior local MQAR generator was a contiguous language-model layout and did not match Zoology's random query-region layout, vocab 8192, upper-half value tokens, one-query-per-key structure, or power-law gap sampling.
+  - Patched `scripts/synthetic_recall_probe.py` with `--mqar-layout zoology`, source-style gap/filler controls, label-based evaluation, optional tied embeddings, and optional `std=0.02` initialization.
+  - Corrected paper-shape MQAR (`vocab=8192`, `seq_len=256`, `num_pairs=64`) fit on GPU but did not learn retrieval. The 20,000-step lr `1e-3` run ended at KDA `0.00049`, GDN `0.0`, and Mamba2 `0.0` final accuracy, with loss around `log(4096)`, meaning the models learned the value-token half but not key-value lookup.
+  - Source-style tied embeddings, `std=0.02` init, MLP ratio 4, high LRs, batch 64, and a `num_pairs=16` high-vocab slice still stayed at chance by 2000 steps.
+  - A tiny positive control did learn Zoology-style MQAR: with `vocab=256`, `seq_len=64`, `num_pairs=4`, batch 64, GDN reached `0.9971` final accuracy and KDA reached `0.2612` by 2000 steps. This proves the corrected harness can learn easy MQAR, but the paper-shape/high-vocab MQAR result remains unresolved. Artifact: `artifacts/synthetic_mqar_zoology_tied_diagnostics_summary.json`.
 - Free-GPU paper-shape 64-stack reproduction:
   - Used 64 stacks and actual sequence length 255, matching the paper-shape synthetic setting closely within the local generator.
   - Batch-4, 200-step smoke fit for KDA, GDN, and Mamba2. At 200 steps, GDN was ahead (`0.2165`) with KDA lower but learning (`0.1280`) and Mamba2 near chance (`0.0197`).
@@ -364,7 +370,7 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the two-seed easy palindrome LR grid favored GDN on the best mean score.
   - The early stack probe used 16 stacks, not the paper's 64 stacks. The later free-GPU 64-stack run is closer to paper shape and gives a KDA final-quality edge over three seeds.
   - The free-GPU paper-shape palindrome run shows robust KDA learning across three seeds, but GDN beats KDA on two of those seeds; the result is not a clean KDA-over-GDN reproduction.
-  - The free-GPU paper-shape MQAR run is negative for KDA so far; the task may need generator validation, more seeds, longer training, or a closer match to the paper's private synthetic setup.
+  - The free-GPU paper-shape MQAR run is negative for KDA so far. Generator validation found and fixed a major mismatch with Zoology MQAR, but the corrected high-vocab task still does not learn under this local tiny-model wrapper and training budget. The tiny MQAR positive control works, so the remaining gap is specific to paper-shape/high-vocab MQAR.
   - The free-GPU paper-shape 64-stack run favors KDA on final accuracy, but GDN converges faster early, so it is not a clean reproduction of a KDA convergence-speed advantage.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
@@ -395,7 +401,7 @@ Separate official sources from third-party sources and cite URLs/commits used.
 ## Next Experiments
 
 - Diagnose or replace the Mamba2 20k baseline path; 2k works, but 20k hangs before the first eval record.
-- Diagnose paper-shape MQAR and run multiseed checks only after validating the generator against the intended task semantics.
+- Continue MQAR only if we can close the paper-shape/high-vocab gap: likely next checks are a closer Zoology model wrapper/loss implementation, larger batch or longer high-vocab runs, or using Zoology's finite cached dataset/dataloader directly.
 - Decide whether the current palindrome plus 64-stack evidence is sufficient to start UI design, or whether MQAR needs to be fixed first.
 - Rerun backward operator benchmarks at H=16/D=128 for 2k-64k lengths with the GPU free.
 - Build the UI only after the synthetic learning result is credible.

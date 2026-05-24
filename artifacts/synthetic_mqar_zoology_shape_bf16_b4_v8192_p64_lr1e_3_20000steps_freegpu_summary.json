@@ -1,0 +1,138 @@
+{
+  "aggregates": [
+    {
+      "actual_seq_len": 256,
+      "batch_size": 4,
+      "dtype": "bfloat16",
+      "hidden_size": 256,
+      "lr": 0.001,
+      "max_final_eval_accuracy": 0.0,
+      "mean_best_eval_accuracy": 0.0009765625,
+      "mean_final_eval_accuracy": 0.0,
+      "mean_final_eval_loss": 8.328125,
+      "min_final_eval_accuracy": 0.0,
+      "model": "gdn",
+      "num_seeds": 1,
+      "requested_seq_len": 256,
+      "seeds": [
+        42
+      ],
+      "task": "mqar",
+      "vocab_size": 8192
+    },
+    {
+      "actual_seq_len": 256,
+      "batch_size": 4,
+      "dtype": "bfloat16",
+      "hidden_size": 256,
+      "lr": 0.001,
+      "max_final_eval_accuracy": 0.00048828125,
+      "mean_best_eval_accuracy": 0.00048828125,
+      "mean_final_eval_accuracy": 0.00048828125,
+      "mean_final_eval_loss": 8.3203125,
+      "min_final_eval_accuracy": 0.00048828125,
+      "model": "kda",
+      "num_seeds": 1,
+      "requested_seq_len": 256,
+      "seeds": [
+        42
+      ],
+      "task": "mqar",
+      "vocab_size": 8192
+    },
+    {
+      "actual_seq_len": 256,
+      "batch_size": 4,
+      "dtype": "bfloat16",
+      "hidden_size": 256,
+      "lr": 0.001,
+      "max_final_eval_accuracy": 0.0,
+      "mean_best_eval_accuracy": 0.0009765625,
+      "mean_final_eval_accuracy": 0.0,
+      "mean_final_eval_loss": 8.3359375,
+      "min_final_eval_accuracy": 0.0,
+      "model": "mamba2",
+      "num_seeds": 1,
+      "requested_seq_len": 256,
+      "seeds": [
+        42
+      ],
+      "task": "mqar",
+      "vocab_size": 8192
+    }
+  ],
+  "inputs": [
+    "artifacts/synthetic_mqar_zoology_shape_bf16_b4_v8192_p64_lr1e_3_20000steps_freegpu.jsonl"
+  ],
+  "results": [
+    {
+      "actual_seq_len": 256,
+      "batch_size": 4,
+      "best_eval_accuracy": 0.0009765625,
+      "best_eval_loss": 8.3125,
+      "best_eval_step": 8000,
+      "dtype": "bfloat16",
+      "file": "artifacts/synthetic_mqar_zoology_shape_bf16_b4_v8192_p64_lr1e_3_20000steps_freegpu.jsonl",
+      "final_eval_accuracy": 0.0,
+      "final_eval_loss": 8.328125,
+      "final_step": 20000,
+      "final_train_loss": 8.3125,
+      "hidden_size": 256,
+      "lr": 0.001,
+      "model": "gdn",
+      "param_count": 5383688,
+      "requested_seq_len": 256,
+      "seed": 42,
+      "status": "ok",
+      "steps": 20000,
+      "task": "mqar",
+      "vocab_size": 8192
+    },
+    {
+      "actual_seq_len": 256,
+      "batch_size": 4,
+      "best_eval_accuracy": 0.00048828125,
+      "best_eval_loss": 9.1484375,
+      "best_eval_step": 1,
+      "dtype": "bfloat16",
+      "file": "artifacts/synthetic_mqar_zoology_shape_bf16_b4_v8192_p64_lr1e_3_20000steps_freegpu.jsonl",
+      "final_eval_accuracy": 0.00048828125,
+      "final_eval_loss": 8.3203125,
+      "final_step": 20000,
+      "final_train_loss": 8.3125,
+      "hidden_size": 256,
+      "lr": 0.001,
+      "model": "kda",
+      "param_count": 5514756,
+      "requested_seq_len": 256,
+      "seed": 42,
+      "status": "ok",
+      "steps": 20000,
+      "task": "mqar",
+      "vocab_size": 8192
+    },
+    {
+      "actual_seq_len": 256,
+      "batch_size": 4,
+      "best_eval_accuracy": 0.0009765625,
+      "best_eval_loss": 8.3203125,
+      "best_eval_step": 2000,
+      "dtype": "bfloat16",
+      "file": "artifacts/synthetic_mqar_zoology_shape_bf16_b4_v8192_p64_lr1e_3_20000steps_freegpu.jsonl",
+      "final_eval_accuracy": 0.0,
+      "final_eval_loss": 8.3359375,
+      "final_step": 20000,
+      "final_train_loss": 8.3125,
+      "hidden_size": 256,
+      "lr": 0.001,
+      "model": "mamba2",
+      "param_count": 5649696,
+      "requested_seq_len": 256,
+      "seed": 42,
+      "status": "ok",
+      "steps": 20000,
+      "task": "mqar",
+      "vocab_size": 8192
+    }
+  ]
+}

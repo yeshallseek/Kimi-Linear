@@ -1,0 +1,4 @@
+actual_seq_len,batch_size,best_eval_accuracy,best_eval_loss,best_eval_step,dtype,file,final_eval_accuracy,final_eval_loss,final_step,final_train_loss,hidden_size,lr,model,param_count,requested_seq_len,seed,status,steps,task,vocab_size
+256,2,0.0,9.125,1,bfloat16,artifacts/synthetic_mqar_zoology_shape_bf16_b2_v8192_p64_20steps_freegpu.jsonl,0.0,9.125,20,9.1875,256,0.0005,gdn,5383688,256,42,ok,20,mqar,8192
+256,2,0.0,9.1875,1,bfloat16,artifacts/synthetic_mqar_zoology_shape_bf16_b2_v8192_p64_20steps_freegpu.jsonl,0.0,9.125,20,9.0625,256,0.0005,kda,5514756,256,42,ok,20,mqar,8192
+256,2,0.0,9.1875,1,bfloat16,artifacts/synthetic_mqar_zoology_shape_bf16_b2_v8192_p64_20steps_freegpu.jsonl,0.0,9.1875,20,9.1875,256,0.0005,mamba2,5649696,256,42,ok,20,mqar,8192

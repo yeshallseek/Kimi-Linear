@@ -258,6 +258,37 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
 
 Observed result: the MQAR generator produced actual length 249 with 63 query pairs. The 2000-step LR grid did not show a KDA learning signal: best final accuracy was KDA `0.0272`, GDN `0.0252`, and Mamba2 `0.0696`. The 20,000-step KDA/GDN extension at lr `1e-3` stayed negative for KDA (`0.0131` final accuracy, best `0.0202`) and only modestly above chance for GDN (`0.0917` final accuracy, best `0.0938`). Treat this as an unresolved/negative MQAR reproduction for the current harness.
 
+Corrected Zoology-style MQAR audit and follow-up:
+
+```bash
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task mqar --mqar-layout zoology --models kda,gdn,mamba2 \
+  --vocab-size 8192 --seq-len 256 --num-pairs 64 \
+  --steps 20000 --eval-every 2000 --eval-batches 8 \
+  --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+  --mlp-ratio 2 --dtype bfloat16 --lr 1e-3 --seed 42 \
+  --output artifacts/synthetic_mqar_zoology_shape_bf16_b4_v8192_p64_lr1e_3_20000steps_freegpu.jsonl
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task mqar --mqar-layout zoology --tie-embeddings --init-std 0.02 --models kda,gdn \
+  --vocab-size 8192 --seq-len 256 --num-pairs 64 \
+  --steps 2000 --eval-every 200 --eval-batches 2 \
+  --batch-size 64 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mlp-ratio 4 --dtype bfloat16 --lr 1e-3 --seed 42 \
+  --output artifacts/synthetic_mqar_zoology_tied_init002_mlp4_bf16_b64_v8192_p64_lr1e_3_2000steps_freegpu.jsonl
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task mqar --mqar-layout zoology --tie-embeddings --init-std 0.02 --models kda,gdn \
+  --vocab-size 256 --seq-len 64 --num-pairs 4 \
+  --steps 2000 --eval-every 200 --eval-batches 8 \
+  --batch-size 64 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mlp-ratio 4 --dtype bfloat16 --lr 1e-3 --seed 42 \
+  --output artifacts/synthetic_mqar_zoology_tied_init002_mlp4_bf16_b64_v256_p4_lr1e_3_2000steps_freegpu.jsonl
+```
+
+Observed result: the original local MQAR layout was not faithful to Zoology. The corrected `--mqar-layout zoology` path uses vocab 8192, upper-half value tokens, power-law query gaps, random non-query fillers, and one query per key. At paper task shape (`vocab=8192`, `seq_len=256`, `num_pairs=64`), KDA/GDN/Mamba2 stayed at the value-vocabulary baseline through 20,000 steps: final accuracy was KDA `0.00049`, GDN `0.0`, and Mamba2 `0.0`. Source-style tied embeddings, `std=0.02` init, MLP ratio 4, higher LRs, batch 64, and `num_pairs=16` still did not produce a high-vocab retrieval signal by 2000 steps. The tiny positive control (`vocab=256`, `seq_len=64`, `num_pairs=4`, batch 64) did learn: GDN reached `0.9971` final accuracy and KDA reached `0.2612`. Treat MQAR as unresolved rather than reproduced.
+
 Free-GPU paper-shape 64-stack commands:
 
 ```bash

@@ -1,0 +1,6 @@
+seq_len,gdn_best_alpha,gdn_theory_mse,gdn_empirical_mse,kda_best_alpha_long,kda_best_alpha_short,kda_empirical_mse,kda_empirical_zero,empirical_mse_ratio_gdn_over_kda,learned_gdn_alpha,learned_gdn_mse,learned_kda_alpha,learned_kda_mse
+16,0.0,1.0,1.0119747422451026,1.0,0.0,0.0,True,1011974742245.1027,null,,null,
+32,0.0,1.0,0.9814012721223968,1.0,0.0,0.0,True,981401272122.3969,null,,null,
+64,0.0,1.0,0.963347770036371,1.0,0.0,0.0,True,963347770036.371,null,,null,
+128,0.0,1.0,1.0074806499902358,1.0,0.0,0.0,True,1007480649990.2358,null,,null,
+256,0.0,1.0,0.990464036472839,1.0,0.0,0.0,True,990464036472.839,null,,null,

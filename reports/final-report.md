@@ -5,7 +5,7 @@ Source: https://github.com/MoonshotAI/Kimi-Linear
 
 ## Summary
 
-Initial reproduction is partially successful. I reproduced KDA kernel correctness against FLA's naive recurrent reference and reproduced the operator-speed direction for KDA vs DPLR at a reduced, paper-like forward-only shape through 4096 tokens. At 8192 tokens, KDA still ran while DPLR OOMed under the same occupied-GPU constraint, which is useful evidence for the memory-efficiency side of the claim. I did not yet reproduce the synthetic learning curves from Figure 4.
+Initial reproduction is partially successful. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at a reduced, paper-like forward-only shape through 4096 tokens, and added a CPU recurrence probe that isolates why channel-wise KDA gates can retain one channel while forgetting another. At 8192 tokens, KDA still ran while DPLR OOMed under the same occupied-GPU constraint, which is useful evidence for the memory-efficiency side of the claim. I did not yet reproduce the synthetic learning curves from Figure 4.
 
 ## What Was Tested
 
@@ -13,6 +13,7 @@ Initial reproduction is partially successful. I reproduced KDA kernel correctnes
 - Installed FLA path through conda `kimi-linear`: `flash-linear-attention==0.4.0`, `fla-core==0.4.0`.
 - KDA correctness: `chunk_kda` and `fused_recurrent_kda` vs `naive_recurrent_kda`.
 - KDA-vs-DPLR operator latency at two local scales.
+- A recurrence-level selective retention/forgetting probe comparing channel-wise KDA decay against scalar GDN decay.
 - A first synthetic palindrome training harness using tiny KDA/GDN/Mamba2-style mixers, plus a constrained no-conv bf16 smoke variant.
 
 ## Commands
@@ -60,6 +61,8 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
   --no-short-conv --mlp-ratio 1 --dtype bfloat16 --lr 5e-4 \
   --output artifacts/synthetic_palindrome_tiny_noconv_bf16_100steps.jsonl
+
+conda run -n kimi-linear python scripts/channel_gate_probe.py
 ```
 
 ## Results
@@ -75,6 +78,11 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   - T=4096: KDA `0.4619 ms`, DPLR `0.8607 ms` (`1.86x` KDA speedup).
   - T=8192: KDA `1.0256 ms`; DPLR OOMed trying to allocate an additional 256 MiB while KDA fit. This is a memory-efficiency datapoint rather than a latency-ratio datapoint.
   - This partially reproduces the paper's operator-efficiency claim direction, at smaller lengths and forward-only due to current VRAM constraints.
+- Channel-gate mechanism probe:
+  - Task setup: one channel must preserve a signal from the first token; another channel receives noise and must reset for a final recent signal.
+  - Scalar GDN's grid-best decay was `0.0` across sequence lengths 16-256, which forgets noise but also gives up the long signal; empirical MSE stayed about `0.96-1.01`.
+  - KDA's grid-best decays were `alpha_long=1.0` and `alpha_short=0.0`, giving zero empirical MSE across the same sequence lengths.
+  - This directly supports the channel-wise selective retention/forgetting mechanism, but it is a recurrence-level causal probe, not a Figure 4 training reproduction. Artifact: `artifacts/channel_gate_probe.json`.
 - Tiny no-short-conv bf16 synthetic palindrome:
   - 2-step smoke completed for KDA and GDN without NaNs.
   - 100-step run stayed finite but did not learn; final eval accuracy was `0.0078` for KDA and `0.0039` for GDN, near chance for a 128-token vocabulary.
@@ -88,6 +96,7 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   - KDA/GDN with fp16 and lr `1e-3` produced NaNs quickly.
   - Mamba2 OOMed under current GPU pressure.
   - A tiny no-short-conv bf16 run stayed finite but did not learn, and it intentionally omits short convolution, which the paper says is important.
+- The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
 
 ## Reproducibility Notes
@@ -99,6 +108,7 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   - `scripts/kda_kernel_smoke.py`
   - `scripts/kda_operator_benchmark.py`
   - `scripts/synthetic_recall_probe.py`
+  - `scripts/channel_gate_probe.py`
 
 ## Sources Used
 

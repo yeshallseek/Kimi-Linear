@@ -35,6 +35,22 @@ Success criteria:
 - KDA median latency is lower than DPLR for at least the longer selected lengths.
 - If FlashAttention or DPLR fails due to install or memory, the failure is recorded with traceback and the benchmark continues.
 
+## Tier 1.5: Recurrence Mechanism Probe
+
+Purpose: isolate the selective retention/forgetting mechanism without depending on GPU memory or full synthetic training stability.
+
+Command:
+
+```bash
+conda run -n kimi-linear python scripts/channel_gate_probe.py
+```
+
+Success criteria:
+
+- Scalar GDN has one best decay for both channels and incurs nonzero error when a task requires both long retention and short forgetting.
+- KDA can choose separate long-channel and short-channel decays and reduce the recurrence-level error to zero.
+- Results are labeled as mechanism evidence, not a replacement for Tier 2 Figure 4 training reproduction.
+
 ## Tier 2: Synthetic Learning Probe
 
 Purpose: reproduce a scaled version of Figure 4 before attempting any full-model or UI work.

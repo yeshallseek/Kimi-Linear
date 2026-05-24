@@ -84,9 +84,16 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   --output artifacts/synthetic_palindrome_256.jsonl
 ```
 
+For a CPU-safe recurrence-level mechanism probe while GPU memory is constrained:
+
+```bash
+conda run -n kimi-linear python scripts/channel_gate_probe.py
+```
+
 ## Minimal Causal Experiment
 
 - Simplest faithful experiment: run FLA KDA forward/backward against naive recurrent KDA on tiny random tensors, then benchmark KDA vs DPLR/GDN/FlashAttention for the same tensor shapes.
+- Mechanism probe: construct a two-channel recurrence where one channel must preserve a long-lived signal and the other must forget noisy short-lived writes. KDA can assign different channel decays; scalar GDN cannot.
 - First causal learning probe: train same-size tiny causal language models on a synthetic palindrome or MQAR task, changing only the sequence mixer (`KDAConfig`, `GatedDeltaNetConfig`, `Mamba2Config`).
 - Proposed control runs: GDN controls for delta rule with scalar/head-wise gating; Mamba2 controls for multiplicative decay without delta-rule memory; full attention or FlashAttention controls operator throughput but not model quality.
 - Effect being isolated: whether channel-wise gated delta memory improves selective retention/forgetting and whether the constrained DPLR/KDA formulation improves hardware efficiency.

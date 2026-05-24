@@ -5,7 +5,7 @@ Source: https://github.com/MoonshotAI/Kimi-Linear
 
 ## Summary
 
-Initial reproduction is partially successful. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at a reduced, paper-like forward-only shape through 4096 tokens, and added a CPU recurrence probe that isolates why channel-wise KDA gates can retain one channel while forgetting another. At 8192 tokens, KDA still ran while DPLR OOMed under the same occupied-GPU constraint, which is useful evidence for the memory-efficiency side of the claim. I did not yet reproduce the synthetic learning curves from Figure 4.
+Initial reproduction is partially successful. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at a reduced, paper-like forward-only shape through 4096 tokens, and added a CPU recurrence probe that isolates why channel-wise KDA gates can retain one channel while forgetting another. At 8192 tokens, KDA still ran while DPLR OOMed under the same occupied-GPU constraint, which is useful evidence for the memory-efficiency side of the claim. I also stabilized several tiny bf16 short-conv synthetic runs, but those runs did not reproduce the Figure 4 KDA advantage.
 
 ## What Was Tested
 
@@ -63,6 +63,20 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   --output artifacts/synthetic_palindrome_tiny_noconv_bf16_100steps.jsonl
 
 conda run -n kimi-linear python scripts/channel_gate_probe.py
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task palindrome --models kda,gdn \
+  --vocab-size 16 --seq-len 32 --steps 1000 --eval-every 100 --eval-batches 8 \
+  --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+  --mlp-ratio 1 --dtype bfloat16 --lr 5e-4 \
+  --output artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_1000steps.jsonl
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task mqar --models kda,gdn \
+  --vocab-size 64 --seq-len 64 --steps 2000 --eval-every 200 --eval-batches 8 \
+  --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+  --mlp-ratio 1 --dtype bfloat16 --lr 5e-4 \
+  --output artifacts/synthetic_mqar_shortconv_bf16_b2_2000steps.jsonl
 ```
 
 ## Results
@@ -87,6 +101,12 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py
   - 2-step smoke completed for KDA and GDN without NaNs.
   - 100-step run stayed finite but did not learn; final eval accuracy was `0.0078` for KDA and `0.0039` for GDN, near chance for a 128-token vocabulary.
   - This validates the low-memory training loop but does not reproduce Figure 4.
+- Tiny short-conv bf16 synthetic probes:
+  - Palindrome, vocab 128, seq_len 64, hidden 64, batch 2, lr `1e-4`, 200 steps: finite but near chance (`0.0078` KDA, `0.0039` GDN final eval accuracy).
+  - Easier palindrome, vocab 16, seq_len 32 request padded to actual length 65, hidden 64, batch 2, lr `5e-4`, 1000 steps: loss improved, but GDN was slightly ahead (`0.1758` GDN vs `0.1367` KDA final eval accuracy). This is a negative result for KDA advantage at this tiny scale.
+  - Same easier palindrome at batch 8 / hidden 96 OOMed in Triton backward for both KDA and GDN while the root-owned vLLM process occupied most VRAM.
+  - MQAR, vocab 64, seq_len 64 request padded to actual length 65, hidden 64, batch 2, lr `5e-4`, 2000 steps: both KDA and GDN stayed near chance (`0.0208` final eval accuracy).
+  - The synthetic harness now pads sequences shorter than 65 tokens because FLA KDA/GDN switch to fused recurrent mode at `q_len <= 64`, and their training path asserts that chunk mode is required.
 
 ## Failures and Limitations
 
@@ -96,6 +116,7 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py
   - KDA/GDN with fp16 and lr `1e-3` produced NaNs quickly.
   - Mamba2 OOMed under current GPU pressure.
   - A tiny no-short-conv bf16 run stayed finite but did not learn, and it intentionally omits short convolution, which the paper says is important.
+  - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the easiest successful palindrome run slightly favored GDN.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
 

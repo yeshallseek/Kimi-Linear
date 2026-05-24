@@ -120,6 +120,7 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py
 - The local FLA clone is behind upstream HEAD. Installed package is `0.4.0`; should record exact installed version for runs, and only update after a baseline run or if a bug blocks reproduction.
 - GPU is currently occupied by a root-owned vLLM process. Do not kill it without user authorization; schedule GPU runs after it is freed or run only tiny smoke tests that fit.
 - The paper's synthetic setup gives model sizes and learning-rate grid but not full dataset-generation code. Our synthetic reproduction must clearly mark deviations.
+- FLA KDA/GDN layers switch to fused recurrent mode at `q_len <= 64`, but training asserts that only chunk mode is supported. The local synthetic harness pads shorter generated tasks to length 65 so tiny training probes use the supported path.
 - Third-party AWQ quantization may alter model behavior and is not evidence for the paper's architecture claims.
 
 ## Decision

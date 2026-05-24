@@ -107,11 +107,25 @@ def make_mqar_batch(args: argparse.Namespace, device: torch.device) -> tuple[tor
     return seq, labels
 
 
+def pad_to_chunk_training_minimum(
+    input_ids: torch.Tensor,
+    labels: torch.Tensor,
+    minimum_seq_len: int = 65,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """FLA KDA/GDN training requires chunk mode; q_len <= 64 selects recurrent mode."""
+    pad_len = minimum_seq_len - input_ids.shape[1]
+    if pad_len <= 0:
+        return input_ids, labels
+    input_pad = torch.full((input_ids.shape[0], pad_len), PAD, dtype=input_ids.dtype, device=input_ids.device)
+    label_pad = torch.full((labels.shape[0], pad_len), -100, dtype=labels.dtype, device=labels.device)
+    return torch.cat([input_ids, input_pad], dim=1), torch.cat([labels, label_pad], dim=1)
+
+
 def make_batch(args: argparse.Namespace, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
     if args.task == "palindrome":
-        return make_palindrome_batch(args, device)
+        return pad_to_chunk_training_minimum(*make_palindrome_batch(args, device))
     if args.task == "mqar":
-        return make_mqar_batch(args, device)
+        return pad_to_chunk_training_minimum(*make_mqar_batch(args, device))
     raise ValueError(f"Unsupported task: {args.task}")
 
 

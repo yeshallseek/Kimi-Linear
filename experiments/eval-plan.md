@@ -71,6 +71,7 @@ Controls:
 - Same sequence length, batch size, optimizer, seed, hidden size, layer count, and head count.
 - Only the mixer/model family changes.
 - Repeat with at least two seeds before treating a result as meaningful.
+- For KDA/GDN training, pad generated sequences shorter than 65 tokens so FLA uses chunk mode; the recurrent mode path is inference-only for these layers.
 
 ## Tier 3: Full-Model Inference
 

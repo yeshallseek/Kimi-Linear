@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -41,12 +42,13 @@ def summarize_file(path: Path) -> list[dict[str, Any]]:
             summaries.append(
                 {
                     "file": str(path),
-                    "task": metadata.get("task") or err.get("task"),
-                    "model": model,
-                    "lr": args.get("lr"),
-                    "status": "error",
-                    "error_type": err.get("error_type"),
-                    "error": err.get("error"),
+                "task": metadata.get("task") or err.get("task"),
+                "model": model,
+                "lr": args.get("lr"),
+                "seed": args.get("seed"),
+                "status": "error",
+                "error_type": err.get("error_type"),
+                "error": err.get("error"),
                 },
             )
             continue
@@ -60,6 +62,7 @@ def summarize_file(path: Path) -> list[dict[str, Any]]:
                 "task": metadata.get("task") or final.get("task"),
                 "model": model,
                 "lr": args.get("lr"),
+                "seed": args.get("seed"),
                 "status": "ok",
                 "requested_seq_len": args.get("seq_len"),
                 "actual_seq_len": final.get("actual_seq_len"),
@@ -90,6 +93,57 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def mean_or_none(values: list[float]) -> float | None:
+    return float(statistics.fmean(values)) if values else None
+
+
+def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+    for row in rows:
+        if row.get("status") != "ok":
+            continue
+        key = (
+            row.get("task"),
+            row.get("model"),
+            row.get("lr"),
+            row.get("requested_seq_len"),
+            row.get("actual_seq_len"),
+            row.get("vocab_size"),
+            row.get("hidden_size"),
+            row.get("batch_size"),
+            row.get("dtype"),
+        )
+        groups.setdefault(key, []).append(row)
+
+    aggregates: list[dict[str, Any]] = []
+    for key, group in sorted(groups.items(), key=lambda item: tuple(str(part) for part in item[0])):
+        task, model, lr, requested_seq_len, actual_seq_len, vocab_size, hidden_size, batch_size, dtype = key
+        final_acc = [row["final_eval_accuracy"] for row in group if row.get("final_eval_accuracy") is not None]
+        best_acc = [row["best_eval_accuracy"] for row in group if row.get("best_eval_accuracy") is not None]
+        final_loss = [row["final_eval_loss"] for row in group if row.get("final_eval_loss") is not None]
+        aggregates.append(
+            {
+                "task": task,
+                "model": model,
+                "lr": lr,
+                "requested_seq_len": requested_seq_len,
+                "actual_seq_len": actual_seq_len,
+                "vocab_size": vocab_size,
+                "hidden_size": hidden_size,
+                "batch_size": batch_size,
+                "dtype": dtype,
+                "num_seeds": len({row.get("seed") for row in group}),
+                "seeds": sorted(row.get("seed") for row in group),
+                "mean_final_eval_accuracy": mean_or_none(final_acc),
+                "min_final_eval_accuracy": min(final_acc) if final_acc else None,
+                "max_final_eval_accuracy": max(final_acc) if final_acc else None,
+                "mean_best_eval_accuracy": mean_or_none(best_acc),
+                "mean_final_eval_loss": mean_or_none(final_loss),
+            },
+        )
+    return aggregates
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("inputs", type=Path, nargs="+")
@@ -100,7 +154,11 @@ def main() -> None:
     summaries: list[dict[str, Any]] = []
     for path in args.inputs:
         summaries.extend(summarize_file(path))
-    result = {"inputs": [str(path) for path in args.inputs], "results": summaries}
+    result = {
+        "inputs": [str(path) for path in args.inputs],
+        "results": summaries,
+        "aggregates": aggregate_rows(summaries),
+    }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")

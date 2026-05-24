@@ -102,6 +102,22 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl \
   --output artifacts/synthetic_palindrome_easy_lr_sweep_summary.json \
   --csv-output artifacts/synthetic_palindrome_easy_lr_sweep_summary.csv
+
+for lr in 5e-5 1e-4 5e-4 1e-3; do
+  safe=${lr//-/_}
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task palindrome --models kda,gdn \
+    --vocab-size 16 --seq-len 32 --steps 2000 --eval-every 200 --eval-batches 8 \
+    --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+    --mlp-ratio 1 --dtype bfloat16 --lr "$lr" --seed 123 \
+    --output "artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr${safe}_2000steps.jsonl"
+done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl \
+  artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr*_2000steps.jsonl \
+  --output artifacts/synthetic_palindrome_easy_lr_sweep_2seed_summary.json \
+  --csv-output artifacts/synthetic_palindrome_easy_lr_sweep_2seed_summary.csv
 ```
 
 Controls:

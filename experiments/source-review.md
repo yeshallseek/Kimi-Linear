@@ -108,7 +108,7 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py \
 - Effect being isolated: whether channel-wise gated delta memory improves selective retention/forgetting and whether the constrained DPLR/KDA formulation improves hardware efficiency.
 - Success: KDA correctness matches naive implementation within FLA test tolerances; KDA operator median latency is lower than DPLR at the selected lengths; KDA reaches higher accuracy or the same accuracy in fewer steps than GDN/Mamba2 on at least one synthetic task.
 - Falsification or caveat: KDA fails correctness on this GPU/env; KDA is not faster than DPLR under identical local shapes; synthetic training shows no accuracy/convergence advantage after matched seeds and learning-rate sweeps.
-- Current synthetic caveat: the memory-safe vocab-16, hidden-64 palindrome LR grid did not reproduce KDA's Figure 4 advantage; GDN learned that tiny task much faster. This result should be treated as a constrained-scale negative control until the paper-size 2-layer/2-head/head-dim-128 setup can run with enough free VRAM.
+- Current synthetic caveat: the memory-safe vocab-16, hidden-64 palindrome LR grid did not reproduce KDA's Figure 4 advantage across two seeds; GDN had the best mean final accuracy. This result should be treated as a constrained-scale negative control until the paper-size 2-layer/2-head/head-dim-128 setup can run with enough free VRAM.
 
 ## RTX 5090 Fit
 

@@ -29,6 +29,16 @@ conda run -n kimi-linear python scripts/kda_operator_benchmark.py \
   --output artifacts/kda_operator_benchmark.jsonl
 ```
 
+Low-memory backward variant used while the GPU is occupied:
+
+```bash
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/kda_operator_benchmark.py \
+  --providers kda,dplr --lengths 2048,4096 \
+  --heads 8 --head-dim 64 --dtype float16 \
+  --warmup 1 --rep 3 \
+  --output artifacts/kda_operator_benchmark_backward_h8d64_2048_4096.jsonl
+```
+
 Success criteria:
 
 - KDA runs successfully for all selected lengths.

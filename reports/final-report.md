@@ -55,6 +55,12 @@ conda run -n kimi-linear python scripts/kda_operator_benchmark.py \
   --warmup 2 --rep 5 --forward-only \
   --output artifacts/kda_operator_benchmark_forward_h16d128_8192.jsonl
 
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/kda_operator_benchmark.py \
+  --providers kda,dplr --lengths 2048,4096 \
+  --heads 8 --head-dim 64 --dtype float16 \
+  --warmup 1 --rep 3 \
+  --output artifacts/kda_operator_benchmark_backward_h8d64_2048_4096.jsonl
+
 conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   --task palindrome --models kda,gdn \
   --seq-len 64 --steps 100 --eval-every 20 --eval-batches 4 \
@@ -99,6 +105,10 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   - T=4096: KDA `0.4619 ms`, DPLR `0.8607 ms` (`1.86x` KDA speedup).
   - T=8192: KDA `1.0256 ms`; DPLR OOMed trying to allocate an additional 256 MiB while KDA fit. This is a memory-efficiency datapoint rather than a latency-ratio datapoint.
   - This partially reproduces the paper's operator-efficiency claim direction, at smaller lengths and forward-only due to current VRAM constraints.
+- Reduced backward operator runs under the same occupied-GPU constraint:
+  - H=4/D=64: DPLR was slightly faster at T=1024 and T=2048 (`0.4712 ms` vs KDA `0.5084 ms`; `0.4014 ms` vs KDA `0.4309 ms`).
+  - H=8/D=64: DPLR was faster at T=2048 (`0.4643 ms` vs KDA `0.5787 ms`), but KDA became faster at T=4096 (`0.5037 ms` vs DPLR `0.8847 ms`, `1.76x` KDA speedup).
+  - These backward runs are directional only because they use low warmup/repetition and run with about 30.7 GiB already occupied by another process. Artifacts: `artifacts/kda_operator_benchmark_backward_h4d64_1024_2048.jsonl`, `artifacts/kda_operator_benchmark_backward_h8d64_2048_4096.jsonl`.
 - Channel-gate mechanism probe:
   - Task setup: one channel must preserve a signal from the first token; another channel receives noise and must reset for a final recent signal.
   - Scalar GDN's grid-best decay was `0.0` across sequence lengths 16-256, which forgets noise but also gives up the long signal; empirical MSE stayed about `0.96-1.01`.

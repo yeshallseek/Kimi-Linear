@@ -121,6 +121,26 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr*_2000steps.jsonl \
   --output artifacts/synthetic_palindrome_easy_lr_sweep_2seed_summary.json \
   --csv-output artifacts/synthetic_palindrome_easy_lr_sweep_2seed_summary.csv
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task palindrome --models kda,gdn \
+  --vocab-size 16 --seq-len 32 --steps 10000 --eval-every 1000 --eval-batches 8 \
+  --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+  --mlp-ratio 1 --dtype bfloat16 --lr 1e-3 --seed 42 \
+  --output artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed42_lr1e_3_10000steps.jsonl
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task palindrome --models kda,gdn \
+  --vocab-size 16 --seq-len 32 --steps 10000 --eval-every 1000 --eval-batches 8 \
+  --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+  --mlp-ratio 1 --dtype bfloat16 --lr 1e-3 --seed 123 \
+  --output artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr1e_3_10000steps.jsonl
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed42_lr1e_3_10000steps.jsonl \
+  artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr1e_3_10000steps.jsonl \
+  --output artifacts/synthetic_palindrome_easy_lr1e3_10000step_2seed_summary.json \
+  --csv-output artifacts/synthetic_palindrome_easy_lr1e3_10000step_2seed_summary.csv
 ```
 
 ## Results
@@ -161,7 +181,8 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - This did not reproduce Figure 4's KDA advantage. Best KDA final eval accuracy was `0.3711` at lr `1e-3`; best GDN final eval accuracy was `0.9453` at lr `1e-3`.
   - Final accuracies by LR: KDA `{5e-5: 0.0508, 1e-4: 0.0645, 5e-4: 0.1621, 1e-3: 0.3711}`; GDN `{5e-5: 0.0586, 1e-4: 0.0684, 5e-4: 0.7832, 1e-3: 0.9453}`.
   - Repeating the LR grid with seed `123` did not reverse the conclusion. Across seeds `42` and `123`, best mean final accuracy was GDN at lr `1e-3` (`0.9053`) vs KDA at lr `1e-3` (`0.4814`). KDA did beat GDN on seed `123` at lr `5e-4`, so the constrained setting is seed/LR sensitive.
-  - This is constrained negative evidence for the tiny setting, not a paper-scale result. Artifacts: `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl`, `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr*_2000steps.jsonl`, summarized in `artifacts/synthetic_palindrome_easy_lr_sweep_2seed_summary.json`.
+  - Extending the best LR `1e-3` to 10,000 steps showed that KDA can improve substantially on seed `123`, but still did not catch GDN on the two-seed mean: final accuracy averaged `0.5322` for KDA vs `0.9521` for GDN. Seed-level final accuracy was KDA `{42: 0.2305, 123: 0.8340}` and GDN `{42: 0.9648, 123: 0.9395}`.
+  - This is constrained negative evidence for the tiny setting, not a paper-scale result. Artifacts: `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl`, `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr*_2000steps.jsonl`, `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed42_lr1e_3_10000steps.jsonl`, `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr1e_3_10000steps.jsonl`, summarized in `artifacts/synthetic_palindrome_easy_lr_sweep_2seed_summary.json` and `artifacts/synthetic_palindrome_easy_lr1e3_10000step_2seed_summary.json`.
 
 ## Failures and Limitations
 

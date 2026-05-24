@@ -1,0 +1,5 @@
+actual_seq_len,batch_size,best_eval_accuracy,best_eval_loss,best_eval_step,dtype,file,final_eval_accuracy,final_eval_loss,final_step,final_train_loss,hidden_size,lr,model,param_count,requested_seq_len,seed,status,steps,task,vocab_size
+65,2,0.978515625,0.113494873046875,5000,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed42_lr1e_3_10000steps.jsonl,0.96484375,0.11175537109375,10000,0.11572265625,64,0.001,gdn,61636,32,42,ok,10000,palindrome,16
+65,2,0.232421875,2.189453125,8000,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed42_lr1e_3_10000steps.jsonl,0.23046875,2.171875,10000,2.171875,64,0.001,kda,86338,32,42,ok,10000,palindrome,16
+65,2,0.9453125,0.2091064453125,9000,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr1e_3_10000steps.jsonl,0.939453125,0.2049560546875,10000,0.2119140625,64,0.001,gdn,61636,32,123,ok,10000,palindrome,16
+65,2,0.837890625,0.55419921875,8000,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr1e_3_10000steps.jsonl,0.833984375,0.53173828125,10000,0.60546875,64,0.001,kda,86338,32,123,ok,10000,palindrome,16

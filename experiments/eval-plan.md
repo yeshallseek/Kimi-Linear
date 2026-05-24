@@ -258,6 +258,51 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
 
 Observed result: the MQAR generator produced actual length 249 with 63 query pairs. The 2000-step LR grid did not show a KDA learning signal: best final accuracy was KDA `0.0272`, GDN `0.0252`, and Mamba2 `0.0696`. The 20,000-step KDA/GDN extension at lr `1e-3` stayed negative for KDA (`0.0131` final accuracy, best `0.0202`) and only modestly above chance for GDN (`0.0917` final accuracy, best `0.0938`). Treat this as an unresolved/negative MQAR reproduction for the current harness.
 
+Free-GPU paper-shape 64-stack commands:
+
+```bash
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task stack --models kda,gdn,mamba2 \
+  --vocab-size 128 --seq-len 256 --num-stacks 64 \
+  --steps 200 --eval-every 50 --eval-batches 4 \
+  --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+  --mlp-ratio 2 --dtype bfloat16 --lr 5e-4 --seed 42 \
+  --output artifacts/synthetic_stack_paper_shape_bf16_b4_s64_200steps_freegpu.jsonl
+
+for lr in 5e-5 1e-4 5e-4 1e-3; do
+  safe=${lr//-/_}
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task stack --models kda,gdn,mamba2 \
+    --vocab-size 128 --seq-len 256 --num-stacks 64 \
+    --steps 2000 --eval-every 200 --eval-batches 4 \
+    --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+    --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+    --mlp-ratio 2 --dtype bfloat16 --lr "$lr" --seed 42 \
+    --output "artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr${safe}_2000steps_freegpu.jsonl"
+done
+
+for seed in 123 7; do
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task stack --models kda,gdn \
+    --vocab-size 128 --seq-len 256 --num-stacks 64 \
+    --steps 2000 --eval-every 200 --eval-batches 4 \
+    --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+    --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+    --mlp-ratio 2 --dtype bfloat16 --lr 1e-3 --seed "$seed" \
+    --output "artifacts/synthetic_stack_paper_shape_bf16_b4_s64_seed${seed}_lr1e_3_2000steps_freegpu.jsonl"
+done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr1e_3_2000steps_freegpu.jsonl \
+  artifacts/synthetic_stack_paper_shape_bf16_b4_s64_seed123_lr1e_3_2000steps_freegpu.jsonl \
+  artifacts/synthetic_stack_paper_shape_bf16_b4_s64_seed7_lr1e_3_2000steps_freegpu.jsonl \
+  --output artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr1e3_2000step_3seed_summary.json \
+  --csv-output artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr1e3_2000step_3seed_summary.csv
+```
+
+Observed result: actual sequence length was 255. In the seed-42 LR grid, KDA's best final accuracy was `0.9655` at lr `1e-3`, GDN's best final accuracy was `0.9194` at lr `5e-4`, and Mamba2's best final accuracy was `0.1440` at lr `5e-4`. At lr `1e-3` over seeds `42`, `123`, and `7`, KDA mean final accuracy was `0.9654` vs GDN `0.9424`; KDA was higher on seeds `42` and `7`, and tied GDN on seed `123`. GDN reached high accuracy earlier in the curves, so the current evidence is a KDA final-quality edge rather than a convergence-speed win.
+
 Controls:
 
 - Same sequence length, batch size, optimizer, seed, hidden size, layer count, and head count.

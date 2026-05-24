@@ -5,7 +5,7 @@ Source: https://github.com/MoonshotAI/Kimi-Linear
 
 ## Summary
 
-Initial reproduction is now substantially stronger, but the learned synthetic result is seed-sensitive and task-sensitive. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at reduced paper-like shapes, and got paper-shape palindrome learning at 20,000 steps. Across palindrome seeds `42`, `123`, and `7`, KDA learned reliably (`0.8981-0.9641`, mean final accuracy `0.9286`). GDN was bimodal: it failed on seed `42` (`0.0389`) but exceeded KDA on seeds `123` and `7` (`0.9808`, `0.9906`), for mean final accuracy `0.6701`. Paper-shape MQAR did not reproduce the KDA advantage in the current harness: a 20,000-step KDA/GDN run ended at KDA `0.0131` vs GDN `0.0917` final accuracy. Remaining gaps are the Mamba2 20k baseline, MQAR diagnosis/multiseed checks, and paper-shape 64-stack state tracking before UI work.
+Initial reproduction is now substantially stronger, but the learned synthetic result is seed-sensitive and task-sensitive. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at reduced paper-like shapes, and got paper-shape learning results for palindrome and 64-stack state tracking. Across palindrome seeds `42`, `123`, and `7`, KDA learned reliably (`0.8981-0.9641`, mean final accuracy `0.9286`) while GDN was bimodal (mean `0.6701`). On paper-shape 64-stack at lr `1e-3`, KDA mean final accuracy was `0.9654` vs GDN `0.9424` over three seeds, with KDA higher on two seeds and tied on one; GDN still reached high accuracy earlier. Paper-shape MQAR did not reproduce the KDA advantage in the current harness: a 20,000-step KDA/GDN run ended at KDA `0.0131` vs GDN `0.0917` final accuracy. Remaining gaps are the Mamba2 20k baseline and MQAR diagnosis before UI work.
 
 ## What Was Tested
 
@@ -15,7 +15,7 @@ Initial reproduction is now substantially stronger, but the learned synthetic re
 - KDA-vs-DPLR operator latency at two local scales.
 - A recurrence-level selective retention/forgetting probe comparing channel-wise KDA decay against scalar GDN decay.
 - Synthetic palindrome, MQAR, and stack/state-tracking training harnesses using tiny KDA/GDN/Mamba2-style mixers, plus constrained bf16 smoke variants.
-- Free-GPU paper-shape palindrome and MQAR probes at 2 layers, hidden 256, 2 heads, head_dim 128, seq_len 256, vocab 128, batch 4.
+- Free-GPU paper-shape palindrome, MQAR, and 64-stack probes at 2 layers, hidden 256, 2 heads, head_dim 128, seq_len 256, vocab 128, batch 4.
 
 ## Commands
 
@@ -241,6 +241,45 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e_3_20000steps_freegpu.jsonl \
   --output artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e3_20000steps_freegpu_summary.json \
   --csv-output artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e3_20000steps_freegpu_summary.csv
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task stack --models kda,gdn,mamba2 \
+  --vocab-size 128 --seq-len 256 --num-stacks 64 \
+  --steps 200 --eval-every 50 --eval-batches 4 \
+  --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+  --mlp-ratio 2 --dtype bfloat16 --lr 5e-4 --seed 42 \
+  --output artifacts/synthetic_stack_paper_shape_bf16_b4_s64_200steps_freegpu.jsonl
+
+for lr in 5e-5 1e-4 5e-4 1e-3; do
+  safe=${lr//-/_}
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task stack --models kda,gdn,mamba2 \
+    --vocab-size 128 --seq-len 256 --num-stacks 64 \
+    --steps 2000 --eval-every 200 --eval-batches 4 \
+    --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+    --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+    --mlp-ratio 2 --dtype bfloat16 --lr "$lr" --seed 42 \
+    --output "artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr${safe}_2000steps_freegpu.jsonl"
+done
+
+for seed in 123 7; do
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task stack --models kda,gdn \
+    --vocab-size 128 --seq-len 256 --num-stacks 64 \
+    --steps 2000 --eval-every 200 --eval-batches 4 \
+    --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+    --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+    --mlp-ratio 2 --dtype bfloat16 --lr 1e-3 --seed "$seed" \
+    --output "artifacts/synthetic_stack_paper_shape_bf16_b4_s64_seed${seed}_lr1e_3_2000steps_freegpu.jsonl"
+done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr1e_3_2000steps_freegpu.jsonl \
+  artifacts/synthetic_stack_paper_shape_bf16_b4_s64_seed123_lr1e_3_2000steps_freegpu.jsonl \
+  artifacts/synthetic_stack_paper_shape_bf16_b4_s64_seed7_lr1e_3_2000steps_freegpu.jsonl \
+  --output artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr1e3_2000step_3seed_summary.json \
+  --csv-output artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr1e3_2000step_3seed_summary.csv
 ```
 
 ## Results
@@ -307,6 +346,12 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - 2000-step LR grid: best final accuracy was KDA `0.0272` at lr `1e-4`, GDN `0.0252` at lr `1e-3`, and Mamba2 `0.0696` at lr `5e-4`.
   - 20,000-step KDA/GDN extension at lr `1e-3`, seed `42`: KDA remained near chance (`0.0131` final accuracy, best `0.0202`), while GDN rose modestly (`0.0917` final accuracy, best `0.0938`) but did not solve the task.
   - This is a negative MQAR reproduction for KDA in the current harness, and a weak positive optimization signal for GDN. Artifacts: `artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr_sweep_2000steps_freegpu_summary.json`, `artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e3_20000steps_freegpu_summary.json`.
+- Free-GPU paper-shape 64-stack reproduction:
+  - Used 64 stacks and actual sequence length 255, matching the paper-shape synthetic setting closely within the local generator.
+  - Batch-4, 200-step smoke fit for KDA, GDN, and Mamba2. At 200 steps, GDN was ahead (`0.2165`) with KDA lower but learning (`0.1280`) and Mamba2 near chance (`0.0197`).
+  - 2000-step LR grid, seed `42`: best final accuracy was KDA `0.9655` at lr `1e-3`, GDN `0.9194` at lr `5e-4`, and Mamba2 `0.1440` at lr `5e-4`.
+  - 3-seed KDA/GDN check at lr `1e-3`: KDA final accuracy `{42: 0.9655, 123: 0.9815, 7: 0.9492}`, GDN `{42: 0.9002, 123: 0.9815, 7: 0.9455}`. Mean final accuracy was KDA `0.9654` vs GDN `0.9424`.
+  - This partially reproduces a KDA state-tracking quality advantage at the paper small-model shape. It does not reproduce a clean convergence-speed advantage because GDN reached high accuracy earlier in the curves. Artifacts: `artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr_sweep_2000steps_freegpu_summary.json`, `artifacts/synthetic_stack_paper_shape_bf16_b4_s64_lr1e3_2000step_3seed_summary.json`.
 
 ## Failures and Limitations
 
@@ -317,9 +362,10 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - Mamba2 OOMed in the early occupied-GPU smoke.
   - A tiny no-short-conv bf16 run stayed finite but did not learn, and it intentionally omits short convolution, which the paper says is important.
   - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the two-seed easy palindrome LR grid favored GDN on the best mean score.
-  - The stack probe uses 16 stacks, not the paper's 64 stacks, and therefore cannot be treated as a paper-scale Figure 4 reproduction.
+  - The early stack probe used 16 stacks, not the paper's 64 stacks. The later free-GPU 64-stack run is closer to paper shape and gives a KDA final-quality edge over three seeds.
   - The free-GPU paper-shape palindrome run shows robust KDA learning across three seeds, but GDN beats KDA on two of those seeds; the result is not a clean KDA-over-GDN reproduction.
   - The free-GPU paper-shape MQAR run is negative for KDA so far; the task may need generator validation, more seeds, longer training, or a closer match to the paper's private synthetic setup.
+  - The free-GPU paper-shape 64-stack run favors KDA on final accuracy, but GDN converges faster early, so it is not a clean reproduction of a KDA convergence-speed advantage.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
 
@@ -350,6 +396,6 @@ Separate official sources from third-party sources and cite URLs/commits used.
 
 - Diagnose or replace the Mamba2 20k baseline path; 2k works, but 20k hangs before the first eval record.
 - Diagnose paper-shape MQAR and run multiseed checks only after validating the generator against the intended task semantics.
-- Add paper-shape 64-stack probes now that the palindrome setup fits.
+- Decide whether the current palindrome plus 64-stack evidence is sufficient to start UI design, or whether MQAR needs to be fixed first.
 - Rerun backward operator benchmarks at H=16/D=128 for 2k-64k lengths with the GPU free.
 - Build the UI only after the synthetic learning result is credible.

@@ -1,0 +1,4 @@
+actual_seq_len,batch_size,best_eval_accuracy,best_eval_loss,best_eval_step,dtype,file,final_eval_accuracy,final_eval_loss,final_step,final_train_loss,hidden_size,lr,model,param_count,requested_seq_len,seed,status,steps,task,vocab_size
+255,4,0.21653543307086615,3.41796875,200,bfloat16,artifacts/synthetic_stack_paper_shape_bf16_b4_s64_200steps_freegpu.jsonl,0.21653543307086615,3.41796875,200,3.46875,256,0.0005,gdn,1254920,256,42,ok,200,stack,128
+255,4,0.1279527559055118,3.96875,200,bfloat16,artifacts/synthetic_stack_paper_shape_bf16_b4_s64_200steps_freegpu.jsonl,0.1279527559055118,3.96875,200,4.0,256,0.0005,kda,1385988,256,42,ok,200,stack,128
+255,4,0.02071563088512241,4.1171875,100,bfloat16,artifacts/synthetic_stack_paper_shape_bf16_b4_s64_200steps_freegpu.jsonl,0.01968503937007874,4.109375,200,4.09375,256,0.0005,mamba2,1520928,256,42,ok,200,stack,128

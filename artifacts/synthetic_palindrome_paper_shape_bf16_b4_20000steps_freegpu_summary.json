@@ -1,0 +1,116 @@
+{
+  "aggregates": [
+    {
+      "actual_seq_len": 255,
+      "batch_size": 4,
+      "dtype": "bfloat16",
+      "hidden_size": 256,
+      "lr": 0.001,
+      "max_final_eval_accuracy": 0.03887795275590551,
+      "mean_best_eval_accuracy": 0.03887795275590551,
+      "mean_final_eval_accuracy": 0.03887795275590551,
+      "mean_final_eval_loss": 4.71875,
+      "min_final_eval_accuracy": 0.03887795275590551,
+      "model": "gdn",
+      "num_seeds": 1,
+      "requested_seq_len": 256,
+      "seeds": [
+        42
+      ],
+      "task": "palindrome",
+      "vocab_size": 128
+    },
+    {
+      "actual_seq_len": 255,
+      "batch_size": 4,
+      "dtype": "bfloat16",
+      "hidden_size": 256,
+      "lr": 0.001,
+      "max_final_eval_accuracy": 0.9237204724409449,
+      "mean_best_eval_accuracy": 0.9237204724409449,
+      "mean_final_eval_accuracy": 0.9237204724409449,
+      "mean_final_eval_loss": 0.24658203125,
+      "min_final_eval_accuracy": 0.9237204724409449,
+      "model": "kda",
+      "num_seeds": 1,
+      "requested_seq_len": 256,
+      "seeds": [
+        42
+      ],
+      "task": "palindrome",
+      "vocab_size": 128
+    }
+  ],
+  "inputs": [
+    "artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e_3_20000steps_freegpu.jsonl",
+    "artifacts/synthetic_palindrome_paper_shape_bf16_b4_mamba2_lr5e_4_20000steps_freegpu.jsonl"
+  ],
+  "results": [
+    {
+      "actual_seq_len": 255,
+      "batch_size": 4,
+      "best_eval_accuracy": 0.03887795275590551,
+      "best_eval_loss": 4.71875,
+      "best_eval_step": 20000,
+      "dtype": "bfloat16",
+      "file": "artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e_3_20000steps_freegpu.jsonl",
+      "final_eval_accuracy": 0.03887795275590551,
+      "final_eval_loss": 4.71875,
+      "final_step": 20000,
+      "final_train_loss": 4.71875,
+      "hidden_size": 256,
+      "lr": 0.001,
+      "model": "gdn",
+      "param_count": 1254920,
+      "requested_seq_len": 256,
+      "seed": 42,
+      "status": "ok",
+      "steps": 20000,
+      "task": "palindrome",
+      "vocab_size": 128
+    },
+    {
+      "actual_seq_len": 255,
+      "batch_size": 4,
+      "best_eval_accuracy": 0.9237204724409449,
+      "best_eval_loss": 0.24658203125,
+      "best_eval_step": 20000,
+      "dtype": "bfloat16",
+      "file": "artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e_3_20000steps_freegpu.jsonl",
+      "final_eval_accuracy": 0.9237204724409449,
+      "final_eval_loss": 0.24658203125,
+      "final_step": 20000,
+      "final_train_loss": 0.267578125,
+      "hidden_size": 256,
+      "lr": 0.001,
+      "model": "kda",
+      "param_count": 1385988,
+      "requested_seq_len": 256,
+      "seed": 42,
+      "status": "ok",
+      "steps": 20000,
+      "task": "palindrome",
+      "vocab_size": 128
+    },
+    {
+      "error": "Mamba2 segment manually terminated after GPU-active startup produced no first eval record for several minutes.",
+      "error_type": "ManualTermination",
+      "file": "artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e_3_20000steps_freegpu.jsonl",
+      "lr": 0.001,
+      "model": "mamba2",
+      "seed": 42,
+      "status": "error",
+      "task": "palindrome"
+    },
+    {
+      "error": "Mamba2-only long run manually terminated after GPU-active startup produced no first eval record for several minutes.",
+      "error_type": "ManualTermination",
+      "file": "artifacts/synthetic_palindrome_paper_shape_bf16_b4_mamba2_lr5e_4_20000steps_freegpu.jsonl",
+      "lr": 0.0005,
+      "model": "mamba2",
+      "seed": 42,
+      "status": "error",
+      "task": "palindrome"
+    }
+  ]
+}

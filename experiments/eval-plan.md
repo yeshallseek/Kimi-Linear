@@ -167,7 +167,32 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   --csv-output artifacts/synthetic_palindrome_paper_shape_bf16_b1_20steps_summary.csv
 ```
 
-Observed result: KDA and GDN OOMed during backward; Mamba2 completed the 20-step smoke at chance accuracy. Rerun this command after freeing the GPU before treating Tier 2 as paper-shape coverage.
+Observed result: KDA and GDN OOMed during backward; Mamba2 completed the 20-step smoke at chance accuracy. This occupied-GPU result was superseded by the free-GPU runs below.
+
+Free-GPU paper-shape palindrome LR grid and 20k extension:
+
+```bash
+for lr in 5e-5 1e-4 5e-4 1e-3; do
+  safe=${lr//-/_}
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task palindrome --models kda,gdn,mamba2 \
+    --vocab-size 128 --seq-len 256 --steps 2000 --eval-every 200 --eval-batches 4 \
+    --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+    --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+    --mlp-ratio 2 --dtype bfloat16 --lr "$lr" --seed 42 \
+    --output "artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr${safe}_2000steps_freegpu.jsonl"
+done
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task palindrome --models kda,gdn,mamba2 \
+  --vocab-size 128 --seq-len 256 --steps 20000 --eval-every 2000 --eval-batches 4 \
+  --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+  --mlp-ratio 2 --dtype bfloat16 --lr 1e-3 --seed 42 \
+  --output artifacts/synthetic_palindrome_paper_shape_bf16_b4_lr1e_3_20000steps_freegpu.jsonl
+```
+
+Observed result: the 20k extension reproduced the KDA-vs-GDN palindrome direction for seed `42` (`0.9237` KDA final accuracy vs `0.0389` GDN). Mamba2 learned modestly in the 2k grid but its 20k segment hung before the first eval record and needs a separate fix or replacement baseline command.
 
 Controls:
 

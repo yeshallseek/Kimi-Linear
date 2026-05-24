@@ -1,0 +1,4 @@
+actual_seq_len,batch_size,best_eval_accuracy,best_eval_loss,best_eval_step,dtype,file,final_eval_accuracy,final_eval_loss,final_step,final_train_loss,hidden_size,lr,model,param_count,requested_seq_len,seed,status,steps,task,vocab_size
+255,4,0.011318897637795276,4.953125,50,bfloat16,artifacts/synthetic_palindrome_paper_shape_bf16_b4_200steps_freegpu.jsonl,0.009350393700787402,4.859375,200,4.875,256,0.0005,gdn,1254920,256,42,ok,200,palindrome,128
+255,4,0.008858267716535433,4.875,150,bfloat16,artifacts/synthetic_palindrome_paper_shape_bf16_b4_200steps_freegpu.jsonl,0.006889763779527559,4.8671875,200,4.875,256,0.0005,kda,1385988,256,42,ok,200,palindrome,128
+255,4,0.012795275590551181,4.8359375,200,bfloat16,artifacts/synthetic_palindrome_paper_shape_bf16_b4_200steps_freegpu.jsonl,0.012795275590551181,4.8359375,200,4.84375,256,0.0005,mamba2,1520928,256,42,ok,200,palindrome,128

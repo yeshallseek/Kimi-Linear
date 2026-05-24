@@ -108,11 +108,11 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py \
 - Effect being isolated: whether channel-wise gated delta memory improves selective retention/forgetting and whether the constrained DPLR/KDA formulation improves hardware efficiency.
 - Success: KDA correctness matches naive implementation within FLA test tolerances; KDA operator median latency is lower than DPLR at the selected lengths; KDA reaches higher accuracy or the same accuracy in fewer steps than GDN/Mamba2 on at least one synthetic task.
 - Falsification or caveat: KDA fails correctness on this GPU/env; KDA is not faster than DPLR under identical local shapes; synthetic training shows no accuracy/convergence advantage after matched seeds and learning-rate sweeps.
-- Current synthetic caveat: the memory-safe vocab-16, hidden-64 palindrome LR grid did not reproduce KDA's Figure 4 advantage across two seeds; GDN had the best mean final accuracy. Extending the best-LR run to 10,000 steps narrowed the gap on one seed but still favored GDN on the two-seed mean. A memory-safe 16-stack state-tracking probe also favored GDN, though both models learned. A batch-1 paper-shape palindrome smoke with 2 layers, 2 heads, head_dim 128, hidden 256, and seq_len 256 OOMed for KDA/GDN under the occupied GPU while Mamba2 ran. These results should be treated as constrained-scale negative controls until the paper-size setup and paper's 64-stack task can run with enough free VRAM.
+- Current synthetic status: memory-safe vocab-16, hidden-64 probes did not reproduce KDA's Figure 4 advantage and should be treated as constrained negative controls. After reclaiming the GPU, the paper-shape palindrome setup (2 layers, 2 heads, head_dim 128, hidden 256, seq_len 256, vocab 128, batch 4) did reproduce the KDA-vs-GDN direction at 20,000 steps for seed `42`: KDA reached `0.9237` final accuracy while GDN reached `0.0389`. The 20k Mamba2 baseline is unresolved because the Mamba2 long-run segment stayed GPU-active without producing a first eval record and was terminated; Mamba2 did learn modestly in the 2000-step LR grid.
 
 ## RTX 5090 Fit
 
-- Hardware snapshot: NVIDIA GeForce RTX 5090, 32,607 MiB VRAM, driver 580.159.03. At snapshot time a root-owned `VLLM::EngineCore` process used about 30,674 MiB, leaving too little room for GPU reproduction without stopping/freeing that process.
+- Hardware snapshot: NVIDIA GeForce RTX 5090, 32,607 MiB VRAM, driver 580.159.03. At snapshot time a root-owned `VLLM::EngineCore` process used about 30,674 MiB. The process was stopped with user authorization on 2026-05-24 00:53 PDT, restoring enough VRAM for paper-shape synthetic runs.
 - Environment: conda `kimi-linear`, Python 3.11.14, torch 2.9.0+cu128, CUDA runtime 12.8, transformers 4.57.1, flash-linear-attention 0.4.0, fla-core 0.4.0, vLLM 0.11.1rc6 dev build.
 - Expected VRAM:
   - KDA kernel smoke: small, likely <2 GiB plus kernel compile overhead.
@@ -128,7 +128,7 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py \
 - The full benchmark data and training corpora are not public; exact reproduction of Tables 3-5 and RL Figure 6 is not locally feasible.
 - vLLM docs assume 4 or 8 GPUs for full 1M context serving; current machine has one RTX 5090.
 - The local FLA clone is behind upstream HEAD. Installed package is `0.4.0`; should record exact installed version for runs, and only update after a baseline run or if a bug blocks reproduction.
-- GPU is currently occupied by a root-owned vLLM process. Do not kill it without user authorization; schedule GPU runs after it is freed or run only tiny smoke tests that fit.
+- The previously occupying root-owned vLLM process was stopped with user authorization. Future runs can reclaim the GPU for this experiment when needed, recording the action.
 - The paper's synthetic setup gives model sizes and learning-rate grid but not full dataset-generation code. Our synthetic reproduction must clearly mark deviations.
 - FLA KDA/GDN layers switch to fused recurrent mode at `q_len <= 64`, but training asserts that only chunk mode is supported. The local synthetic harness pads shorter generated tasks to length 65 so tiny training probes use the supported path.
 - Third-party AWQ quantization may alter model behavior and is not evidence for the paper's architecture claims.

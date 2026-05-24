@@ -80,6 +80,68 @@ def parse_models(raw: str) -> list[str]:
     return models
 
 
+def init_log_uniform_dt(dt_bias: nn.Parameter) -> None:
+    dt = torch.exp(
+        torch.empty_like(dt_bias).uniform_(math.log(0.001), math.log(0.1)),
+    ).clamp(min=1e-4)
+    inv_dt = dt + torch.log(-torch.expm1(-dt))
+    dt_bias.copy_(inv_dt)
+
+
+def apply_partial_initialization(model: "TinyMixerLM", init_std: float) -> None:
+    nn.init.normal_(model.embeddings.weight, mean=0.0, std=init_std)
+    nn.init.normal_(model.lm_head.weight, mean=0.0, std=init_std)
+    for layer in model.layers:
+        for module in layer.mlp:
+            if isinstance(module, nn.Linear):
+                nn.init.normal_(module.weight, mean=0.0, std=init_std)
+
+
+def apply_source_style_initialization(model: nn.Module, init_std: float, scope: str) -> None:
+    """Approximate FLA full-model post_init for the tiny layer wrapper."""
+    if scope not in {"full", "recurrent", "weights"}:
+        raise ValueError(f"Unsupported source init scope: {scope}")
+    with torch.no_grad():
+        for module in model.modules():
+            if scope in {"full", "recurrent"} and isinstance(module, KimiDeltaAttention):
+                module.A_log.copy_(torch.empty_like(module.A_log).uniform_(1, 16).log())
+                init_log_uniform_dt(module.dt_bias)
+                module.dt_bias._is_hf_initialized = True
+            elif scope in {"full", "recurrent"} and isinstance(module, GatedDeltaNet):
+                module.A_log.copy_(torch.empty_like(module.A_log).uniform_(0, 16).log())
+                init_log_uniform_dt(module.dt_bias)
+
+            if scope in {"full", "weights"} and isinstance(module, (nn.Linear, nn.Conv1d)):
+                nn.init.normal_(module.weight, mean=0.0, std=init_std)
+                if module.bias is not None and not getattr(module.bias, "_is_hf_initialized", False):
+                    nn.init.zeros_(module.bias)
+            elif scope in {"full", "weights"} and isinstance(module, nn.Embedding):
+                nn.init.normal_(module.weight, mean=0.0, std=init_std)
+
+
+def make_optimizer(model: nn.Module, args: argparse.Namespace) -> torch.optim.Optimizer:
+    if not args.source_param_groups:
+        return torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+
+    decay_params = []
+    no_decay_params = []
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+        if param.ndim < 2 or name.endswith("bias") or getattr(param, "_no_weight_decay", False):
+            no_decay_params.append(param)
+        else:
+            decay_params.append(param)
+
+    return torch.optim.AdamW(
+        [
+            {"params": decay_params, "weight_decay": args.weight_decay},
+            {"params": no_decay_params, "weight_decay": 0.0},
+        ],
+        lr=args.lr,
+    )
+
+
 def make_palindrome_batch(args: argparse.Namespace, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
     payload_len = max(32, (args.seq_len - 1) // 2)
     x = torch.randint(DATA_START, args.vocab_size, (args.batch_size, payload_len), device=device)
@@ -336,13 +398,12 @@ class TinyMixerLM(nn.Module):
         self.layers = nn.ModuleList([TinyMixerBlock(model_name, args, i) for i in range(args.layers)])
         self.norm = nn.RMSNorm(args.hidden_size, eps=1e-5)
         self.lm_head = nn.Linear(args.hidden_size, args.vocab_size, bias=False)
-        if args.init_std is not None:
-            nn.init.normal_(self.embeddings.weight, mean=0.0, std=args.init_std)
-            nn.init.normal_(self.lm_head.weight, mean=0.0, std=args.init_std)
-            for layer in self.layers:
-                for module in layer.mlp:
-                    if isinstance(module, nn.Linear):
-                        nn.init.normal_(module.weight, mean=0.0, std=args.init_std)
+        if args.source_init:
+            if args.init_std is not None and args.source_init_scope == "recurrent":
+                apply_partial_initialization(self, args.init_std)
+            apply_source_style_initialization(self, args.init_std or 0.02, args.source_init_scope)
+        elif args.init_std is not None:
+            apply_partial_initialization(self, args.init_std)
         if args.tie_embeddings:
             if self.embeddings.embedding_dim != self.lm_head.in_features:
                 raise ValueError("--tie-embeddings requires embedding dim to match lm_head input dim.")
@@ -399,7 +460,7 @@ def train_one(model_name: str, args: argparse.Namespace, device: torch.device, d
     param_count = sum(p.numel() for p in model.parameters())
     model.to(device=device, dtype=dtype)
     model.train()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = make_optimizer(model, args)
     records: list[dict] = []
     start = time.perf_counter()
 
@@ -459,6 +520,9 @@ def main() -> None:
     parser.add_argument("--mlp-ratio", type=float, default=2.0)
     parser.add_argument("--tie-embeddings", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--init-std", type=float, default=None)
+    parser.add_argument("--source-init", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--source-init-scope", choices=["full", "recurrent", "weights"], default="full")
+    parser.add_argument("--source-param-groups", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--key-space", type=int, default=64)
     parser.add_argument("--num-pairs", type=int, default=None)
     parser.add_argument("--num-queries", type=int, default=None)

@@ -73,6 +73,9 @@ def summarize_file(path: Path) -> list[dict[str, Any]]:
                 "dtype": args.get("dtype"),
                 "steps": args.get("steps"),
                 "mqar_train_curriculum": args.get("mqar_train_curriculum"),
+                "source_init": args.get("source_init"),
+                "source_init_scope": args.get("source_init_scope"),
+                "source_param_groups": args.get("source_param_groups"),
                 "param_count": final.get("param_count"),
                 "final_step": final.get("step"),
                 "final_eval_accuracy": final.get("eval_accuracy"),
@@ -116,6 +119,9 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             row.get("batch_size"),
             row.get("dtype"),
             row.get("mqar_train_curriculum"),
+            row.get("source_init"),
+            row.get("source_init_scope"),
+            row.get("source_param_groups"),
         )
         groups.setdefault(key, []).append(row)
 
@@ -133,6 +139,9 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             batch_size,
             dtype,
             mqar_train_curriculum,
+            source_init,
+            source_init_scope,
+            source_param_groups,
         ) = key
         final_acc = [row["final_eval_accuracy"] for row in group if row.get("final_eval_accuracy") is not None]
         best_acc = [row["best_eval_accuracy"] for row in group if row.get("best_eval_accuracy") is not None]
@@ -150,6 +159,9 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "batch_size": batch_size,
                 "dtype": dtype,
                 "mqar_train_curriculum": mqar_train_curriculum,
+                "source_init": source_init,
+                "source_init_scope": source_init_scope,
+                "source_param_groups": source_param_groups,
                 "num_seeds": len({row.get("seed") for row in group}),
                 "seeds": sorted(row.get("seed") for row in group),
                 "mean_final_eval_accuracy": mean_or_none(final_acc),

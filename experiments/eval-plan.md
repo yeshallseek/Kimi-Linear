@@ -302,7 +302,23 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   --output artifacts/synthetic_mqar_zoology_curriculum_tied_init002_mlp4_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl
 ```
 
-Observed result: the curriculum matches Zoology's train slice weights but evaluates on the hard `seq_len=256, num_pairs=64` target. This made the high-vocab task learnable for GDN: final eval accuracy was `0.9838` at 2000 steps. KDA stayed near chance in the same run (`0.0016` final, best `0.0027`). A KDA-only LR sweep at `1e-3`, `3.16e-3`, `1e-2`, and `3.16e-2` with source-style weight decay `0.1` also stayed near chance. This strengthens the current conclusion: the local harness can now solve high-vocab MQAR, but it does so with GDN rather than KDA, so the KDA MQAR finding is still not reproduced. Artifact: `artifacts/synthetic_mqar_zoology_curriculum_diagnostics_summary.json`.
+Observed result: the curriculum matches Zoology's train slice weights but evaluates on the hard `seq_len=256, num_pairs=64` target. This made the high-vocab task learnable for GDN: final eval accuracy was `0.9838` at 2000 steps. KDA stayed near chance in the same run (`0.0016` final, best `0.0027`). A KDA-only LR sweep at `1e-3`, `3.16e-3`, `1e-2`, and `3.16e-2` with source-style weight decay `0.1` also stayed near chance. This was a KDA non-reproduction until the source-initialization audit below found the wrapper mismatch. Artifact: `artifacts/synthetic_mqar_zoology_curriculum_diagnostics_summary.json`.
+
+KDA source-initialization diagnostic:
+
+```bash
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task mqar --mqar-layout zoology --mqar-train-curriculum zoology_figure3 \
+  --tie-embeddings --init-std 0.02 --source-init --source-param-groups \
+  --models kda,gdn \
+  --vocab-size 8192 --seq-len 256 --num-pairs 64 \
+  --steps 2000 --eval-every 200 --eval-batches 2 \
+  --batch-size 128 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mlp-ratio 4 --dtype bfloat16 --lr 1e-3 --seed 42 \
+  --output artifacts/synthetic_mqar_zoology_curriculum_sourceinit_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl
+```
+
+Observed result: the KDA failure above was traced to a wrapper-level initialization mismatch. FLA's full `KDAPreTrainedModel._init_weights` initializes KDA `dt_bias` from log-uniform time constants, but the bare `KimiDeltaAttention` layer starts with `dt_bias=0`. Adding source-style recurrent initialization makes KDA solve the hard eval slice: full source init reached `0.9988` final / `0.9993` best accuracy at 2000 steps. Ablations show the effect is recurrent-gate-specific: `--source-init-scope recurrent` reached `0.9695` final accuracy at 1000 steps, while `--source-init-scope weights` stayed at `0.00049`, and source-style no-decay groups without recurrent init stayed at `0.0014`. Artifact: `artifacts/synthetic_mqar_zoology_source_init_ablation_summary.json`.
 
 Free-GPU paper-shape 64-stack commands:
 

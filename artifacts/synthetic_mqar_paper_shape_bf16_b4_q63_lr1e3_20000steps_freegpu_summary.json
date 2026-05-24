@@ -1,0 +1,95 @@
+{
+  "aggregates": [
+    {
+      "actual_seq_len": 249,
+      "batch_size": 4,
+      "dtype": "bfloat16",
+      "hidden_size": 256,
+      "lr": 0.001,
+      "max_final_eval_accuracy": 0.09173387096774194,
+      "mean_best_eval_accuracy": 0.09375,
+      "mean_final_eval_accuracy": 0.09173387096774194,
+      "mean_final_eval_loss": 3.78125,
+      "min_final_eval_accuracy": 0.09173387096774194,
+      "model": "gdn",
+      "num_seeds": 1,
+      "requested_seq_len": 256,
+      "seeds": [
+        42
+      ],
+      "task": "mqar",
+      "vocab_size": 128
+    },
+    {
+      "actual_seq_len": 249,
+      "batch_size": 4,
+      "dtype": "bfloat16",
+      "hidden_size": 256,
+      "lr": 0.001,
+      "max_final_eval_accuracy": 0.01310483870967742,
+      "mean_best_eval_accuracy": 0.020161290322580645,
+      "mean_final_eval_accuracy": 0.01310483870967742,
+      "mean_final_eval_loss": 4.15625,
+      "min_final_eval_accuracy": 0.01310483870967742,
+      "model": "kda",
+      "num_seeds": 1,
+      "requested_seq_len": 256,
+      "seeds": [
+        42
+      ],
+      "task": "mqar",
+      "vocab_size": 128
+    }
+  ],
+  "inputs": [
+    "artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e_3_20000steps_freegpu.jsonl"
+  ],
+  "results": [
+    {
+      "actual_seq_len": 249,
+      "batch_size": 4,
+      "best_eval_accuracy": 0.09375,
+      "best_eval_loss": 3.79296875,
+      "best_eval_step": 14000,
+      "dtype": "bfloat16",
+      "file": "artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e_3_20000steps_freegpu.jsonl",
+      "final_eval_accuracy": 0.09173387096774194,
+      "final_eval_loss": 3.78125,
+      "final_step": 20000,
+      "final_train_loss": 3.859375,
+      "hidden_size": 256,
+      "lr": 0.001,
+      "model": "gdn",
+      "param_count": 1254920,
+      "requested_seq_len": 256,
+      "seed": 42,
+      "status": "ok",
+      "steps": 20000,
+      "task": "mqar",
+      "vocab_size": 128
+    },
+    {
+      "actual_seq_len": 249,
+      "batch_size": 4,
+      "best_eval_accuracy": 0.020161290322580645,
+      "best_eval_loss": 4.15625,
+      "best_eval_step": 2000,
+      "dtype": "bfloat16",
+      "file": "artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e_3_20000steps_freegpu.jsonl",
+      "final_eval_accuracy": 0.01310483870967742,
+      "final_eval_loss": 4.15625,
+      "final_step": 20000,
+      "final_train_loss": 4.15625,
+      "hidden_size": 256,
+      "lr": 0.001,
+      "model": "kda",
+      "param_count": 1385988,
+      "requested_seq_len": 256,
+      "seed": 42,
+      "status": "ok",
+      "steps": 20000,
+      "task": "mqar",
+      "vocab_size": 128
+    }
+  ]
+}

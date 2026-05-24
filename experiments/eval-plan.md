@@ -217,6 +217,47 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
 
 Observed result: KDA learned reliably across all three seeds (`0.8981-0.9641`, mean `0.9286`), while GDN was bimodal (`0.0389`, `0.9808`, `0.9906`, mean `0.6701`). Treat this as evidence for KDA robustness on this harness, not a per-seed KDA win.
 
+Free-GPU paper-shape MQAR commands:
+
+```bash
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task mqar --models kda,gdn,mamba2 \
+  --vocab-size 128 --seq-len 256 --num-queries 63 \
+  --steps 200 --eval-every 50 --eval-batches 4 \
+  --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+  --mlp-ratio 2 --dtype bfloat16 --lr 5e-4 --seed 42 \
+  --output artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_200steps_freegpu.jsonl
+
+for lr in 5e-5 1e-4 5e-4 1e-3; do
+  safe=${lr//-/_}
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task mqar --models kda,gdn,mamba2 \
+    --vocab-size 128 --seq-len 256 --num-queries 63 \
+    --steps 2000 --eval-every 200 --eval-batches 4 \
+    --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+    --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+    --mlp-ratio 2 --dtype bfloat16 --lr "$lr" --seed 42 \
+    --output "artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr${safe}_2000steps_freegpu.jsonl"
+done
+
+PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+  --task mqar --models kda,gdn \
+  --vocab-size 128 --seq-len 256 --num-queries 63 \
+  --steps 20000 --eval-every 2000 --eval-batches 4 \
+  --batch-size 4 --hidden-size 256 --heads 2 --head-dim 128 \
+  --mamba-head-dim 128 --mamba-state-size 128 --mamba-expand 2 \
+  --mlp-ratio 2 --dtype bfloat16 --lr 1e-3 --seed 42 \
+  --output artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e_3_20000steps_freegpu.jsonl
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e_3_20000steps_freegpu.jsonl \
+  --output artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e3_20000steps_freegpu_summary.json \
+  --csv-output artifacts/synthetic_mqar_paper_shape_bf16_b4_q63_lr1e3_20000steps_freegpu_summary.csv
+```
+
+Observed result: the MQAR generator produced actual length 249 with 63 query pairs. The 2000-step LR grid did not show a KDA learning signal: best final accuracy was KDA `0.0272`, GDN `0.0252`, and Mamba2 `0.0696`. The 20,000-step KDA/GDN extension at lr `1e-3` stayed negative for KDA (`0.0131` final accuracy, best `0.0202`) and only modestly above chance for GDN (`0.0917` final accuracy, best `0.0938`). Treat this as an unresolved/negative MQAR reproduction for the current harness.
+
 Controls:
 
 - Same sequence length, batch size, optimizer, seed, hidden size, layer count, and head count.

@@ -133,6 +133,21 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr1e_3_10000steps.jsonl \
   --output artifacts/synthetic_palindrome_easy_lr1e3_10000step_2seed_summary.json \
   --csv-output artifacts/synthetic_palindrome_easy_lr1e3_10000step_2seed_summary.csv
+
+for seed in 42 123; do
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task stack --models kda,gdn \
+    --vocab-size 128 --seq-len 96 --steps 2000 --eval-every 200 --eval-batches 8 \
+    --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+    --mlp-ratio 1 --dtype bfloat16 --lr 1e-3 --seed "$seed" --num-stacks 16 \
+    --output "artifacts/synthetic_stack_shortconv_bf16_b2_seed${seed}_lr1e_3_2000steps.jsonl"
+done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_stack_shortconv_bf16_b2_seed42_lr1e_3_2000steps.jsonl \
+  artifacts/synthetic_stack_shortconv_bf16_b2_seed123_lr1e_3_2000steps.jsonl \
+  --output artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.json \
+  --csv-output artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.csv
 ```
 
 Controls:

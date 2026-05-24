@@ -14,7 +14,7 @@ Initial reproduction is partially successful. I reproduced KDA kernel correctnes
 - KDA correctness: `chunk_kda` and `fused_recurrent_kda` vs `naive_recurrent_kda`.
 - KDA-vs-DPLR operator latency at two local scales.
 - A recurrence-level selective retention/forgetting probe comparing channel-wise KDA decay against scalar GDN decay.
-- A first synthetic palindrome training harness using tiny KDA/GDN/Mamba2-style mixers, plus a constrained no-conv bf16 smoke variant.
+- Synthetic palindrome, MQAR, and stack/state-tracking training harnesses using tiny KDA/GDN/Mamba2-style mixers, plus constrained bf16 smoke variants.
 
 ## Commands
 
@@ -141,6 +141,21 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr1e_3_10000steps.jsonl \
   --output artifacts/synthetic_palindrome_easy_lr1e3_10000step_2seed_summary.json \
   --csv-output artifacts/synthetic_palindrome_easy_lr1e3_10000step_2seed_summary.csv
+
+for seed in 42 123; do
+  PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
+    --task stack --models kda,gdn \
+    --vocab-size 128 --seq-len 96 --steps 2000 --eval-every 200 --eval-batches 8 \
+    --batch-size 2 --hidden-size 64 --heads 1 --head-dim 64 \
+    --mlp-ratio 1 --dtype bfloat16 --lr 1e-3 --seed "$seed" --num-stacks 16 \
+    --output "artifacts/synthetic_stack_shortconv_bf16_b2_seed${seed}_lr1e_3_2000steps.jsonl"
+done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_stack_shortconv_bf16_b2_seed42_lr1e_3_2000steps.jsonl \
+  artifacts/synthetic_stack_shortconv_bf16_b2_seed123_lr1e_3_2000steps.jsonl \
+  --output artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.json \
+  --csv-output artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.csv
 ```
 
 ## Results
@@ -183,6 +198,11 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - Repeating the LR grid with seed `123` did not reverse the conclusion. Across seeds `42` and `123`, best mean final accuracy was GDN at lr `1e-3` (`0.9053`) vs KDA at lr `1e-3` (`0.4814`). KDA did beat GDN on seed `123` at lr `5e-4`, so the constrained setting is seed/LR sensitive.
   - Extending the best LR `1e-3` to 10,000 steps showed that KDA can improve substantially on seed `123`, but still did not catch GDN on the two-seed mean: final accuracy averaged `0.5322` for KDA vs `0.9521` for GDN. Seed-level final accuracy was KDA `{42: 0.2305, 123: 0.8340}` and GDN `{42: 0.9648, 123: 0.9395}`.
   - This is constrained negative evidence for the tiny setting, not a paper-scale result. Artifacts: `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl`, `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr*_2000steps.jsonl`, `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed42_lr1e_3_10000steps.jsonl`, `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_seed123_lr1e_3_10000steps.jsonl`, summarized in `artifacts/synthetic_palindrome_easy_lr_sweep_2seed_summary.json` and `artifacts/synthetic_palindrome_easy_lr1e3_10000step_2seed_summary.json`.
+- Tiny stack/state-tracking probe:
+  - Added a stack generator matching the paper's operation structure: PUSH stores a value for a stack ID; POP asks the model to predict the most recently pushed value for that stack.
+  - The local run uses a smaller 16-stack setup, not the paper's 64-stack task: vocab 128, seq_len 96, hidden 64, batch 2, lr `1e-3`, 2000 steps, seeds `42` and `123`.
+  - Both KDA and GDN learned, but GDN was higher on the two-seed mean: final eval accuracy `0.9428` for GDN vs `0.8311` for KDA.
+  - This expands Figure 4 coverage to the state-tracking task, but remains constrained negative evidence. Artifact: `artifacts/synthetic_stack_shortconv_bf16_b2_lr1e3_2seed_summary.json`.
 
 ## Failures and Limitations
 
@@ -193,6 +213,7 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - Mamba2 OOMed under current GPU pressure.
   - A tiny no-short-conv bf16 run stayed finite but did not learn, and it intentionally omits short convolution, which the paper says is important.
   - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the two-seed easy palindrome LR grid favored GDN on the best mean score.
+  - The stack probe uses 16 stacks, not the paper's 64 stacks, and therefore cannot be treated as a paper-scale Figure 4 reproduction.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
 

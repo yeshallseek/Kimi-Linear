@@ -26,6 +26,8 @@ PAD = 0
 BOS = 1
 SEP = 2
 DATA_START = 3
+PUSH = DATA_START
+POP = DATA_START + 1
 
 
 def package_version(name: str) -> str | None:
@@ -107,6 +109,49 @@ def make_mqar_batch(args: argparse.Namespace, device: torch.device) -> tuple[tor
     return seq, labels
 
 
+def make_stack_batch(args: argparse.Namespace, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+    num_stacks = min(args.num_stacks, max(1, args.vocab_size - DATA_START - 3))
+    stack_start = DATA_START + 2
+    value_start = stack_start + num_stacks
+    if value_start >= args.vocab_size:
+        raise ValueError("vocab_size is too small for stack IDs and values.")
+    num_values = args.vocab_size - value_start
+    num_ops = max(4, args.seq_len // 3)
+    seq_len = num_ops * 3
+
+    seq = torch.full((args.batch_size, seq_len), PAD, dtype=torch.long, device=device)
+    labels = torch.full_like(seq, -100)
+    for b in range(args.batch_size):
+        stacks: list[list[int]] = [[] for _ in range(num_stacks)]
+        target_count = 0
+        for op_idx in range(num_ops):
+            pos = op_idx * 3
+            nonempty = [idx for idx, stack in enumerate(stacks) if stack]
+            must_pop = op_idx == num_ops - 1 and target_count == 0 and bool(nonempty)
+            do_push = not nonempty or (not must_pop and float(torch.rand((), device=device).cpu()) < args.stack_push_prob)
+            if do_push:
+                stack_id = int(torch.randint(0, num_stacks, (), device=device).cpu())
+                value = int(torch.randint(0, num_values, (), device=device).cpu())
+                stacks[stack_id].append(value)
+                seq[b, pos : pos + 3] = torch.tensor(
+                    [PUSH, stack_start + stack_id, value_start + value],
+                    dtype=torch.long,
+                    device=device,
+                )
+            else:
+                stack_id = nonempty[int(torch.randint(0, len(nonempty), (), device=device).cpu())]
+                value = stacks[stack_id].pop()
+                seq[b, pos : pos + 3] = torch.tensor(
+                    [POP, stack_start + stack_id, value_start + value],
+                    dtype=torch.long,
+                    device=device,
+                )
+                labels[b, pos + 2] = value_start + value
+                target_count += 1
+
+    return seq, labels
+
+
 def pad_to_chunk_training_minimum(
     input_ids: torch.Tensor,
     labels: torch.Tensor,
@@ -126,6 +171,8 @@ def make_batch(args: argparse.Namespace, device: torch.device) -> tuple[torch.Te
         return pad_to_chunk_training_minimum(*make_palindrome_batch(args, device))
     if args.task == "mqar":
         return pad_to_chunk_training_minimum(*make_mqar_batch(args, device))
+    if args.task == "stack":
+        return pad_to_chunk_training_minimum(*make_stack_batch(args, device))
     raise ValueError(f"Unsupported task: {args.task}")
 
 
@@ -278,7 +325,7 @@ def train_one(model_name: str, args: argparse.Namespace, device: torch.device, d
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", choices=["palindrome", "mqar"], default="palindrome")
+    parser.add_argument("--task", choices=["palindrome", "mqar", "stack"], default="palindrome")
     parser.add_argument("--models", default="kda,gdn,mamba2")
     parser.add_argument("--output", type=Path, default=Path("artifacts/synthetic_probe.jsonl"))
     parser.add_argument("--device", default="auto")
@@ -303,6 +350,8 @@ def main() -> None:
     parser.add_argument("--key-space", type=int, default=64)
     parser.add_argument("--num-pairs", type=int, default=None)
     parser.add_argument("--num-queries", type=int, default=None)
+    parser.add_argument("--num-stacks", type=int, default=16)
+    parser.add_argument("--stack-push-prob", type=float, default=0.6)
     parser.add_argument("--mamba-head-dim", type=int, default=128)
     parser.add_argument("--mamba-state-size", type=int, default=128)
     parser.add_argument("--mamba-expand", type=int, default=2)

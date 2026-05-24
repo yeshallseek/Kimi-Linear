@@ -1,0 +1,5 @@
+actual_seq_len,batch_size,best_eval_accuracy,best_eval_loss,best_eval_step,dtype,file,final_eval_accuracy,final_eval_loss,final_step,final_train_loss,hidden_size,lr,model,param_count,requested_seq_len,seed,status,steps,task,vocab_size
+96,2,0.9637305699481865,0.40771484375,2000,bfloat16,artifacts/synthetic_stack_shortconv_bf16_b2_seed42_lr1e_3_2000steps.jsonl,0.9637305699481865,0.40771484375,2000,0.60546875,64,0.001,gdn,75972,96,42,ok,2000,stack,128
+96,2,0.8704663212435233,1.15087890625,2000,bfloat16,artifacts/synthetic_stack_shortconv_bf16_b2_seed42_lr1e_3_2000steps.jsonl,0.8704663212435233,1.15087890625,2000,1.3671875,64,0.001,kda,100674,96,42,ok,2000,stack,128
+96,2,0.9285714285714286,0.82421875,1200,bfloat16,artifacts/synthetic_stack_shortconv_bf16_b2_seed123_lr1e_3_2000steps.jsonl,0.921875,0.55224609375,2000,0.396484375,64,0.001,gdn,75972,96,123,ok,2000,stack,128
+96,2,0.7916666666666666,1.63671875,2000,bfloat16,artifacts/synthetic_stack_shortconv_bf16_b2_seed123_lr1e_3_2000steps.jsonl,0.7916666666666666,1.63671875,2000,1.5703125,64,0.001,kda,100674,96,123,ok,2000,stack,128

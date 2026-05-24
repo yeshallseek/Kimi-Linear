@@ -100,6 +100,11 @@ for lr in 5e-5 1e-4 5e-4 1e-3; do
     --mlp-ratio 1 --dtype bfloat16 --lr "$lr" \
     --output "artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr${safe}_2000steps.jsonl"
 done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl \
+  --output artifacts/synthetic_palindrome_easy_lr_sweep_summary.json \
+  --csv-output artifacts/synthetic_palindrome_easy_lr_sweep_summary.csv
 ```
 
 ## Results
@@ -139,7 +144,7 @@ done
   - Ran the paper LR grid `{5e-5, 1e-4, 5e-4, 1e-3}` on the memory-safe easy palindrome setting: vocab 16, requested seq_len 32 padded to actual length 65, hidden 64, batch 2, 2000 steps.
   - This did not reproduce Figure 4's KDA advantage. Best KDA final eval accuracy was `0.3711` at lr `1e-3`; best GDN final eval accuracy was `0.9453` at lr `1e-3`.
   - Final accuracies by LR: KDA `{5e-5: 0.0508, 1e-4: 0.0645, 5e-4: 0.1621, 1e-3: 0.3711}`; GDN `{5e-5: 0.0586, 1e-4: 0.0684, 5e-4: 0.7832, 1e-3: 0.9453}`.
-  - This is constrained negative evidence for the tiny setting, not a paper-scale result. Artifacts: `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl`.
+  - This is constrained negative evidence for the tiny setting, not a paper-scale result. Artifacts: `artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl`, summarized in `artifacts/synthetic_palindrome_easy_lr_sweep_summary.json`.
 
 ## Failures and Limitations
 
@@ -163,6 +168,7 @@ done
   - `scripts/kda_operator_benchmark.py`
   - `scripts/synthetic_recall_probe.py`
   - `scripts/channel_gate_probe.py`
+  - `scripts/summarize_synthetic_runs.py`
 
 ## Sources Used
 

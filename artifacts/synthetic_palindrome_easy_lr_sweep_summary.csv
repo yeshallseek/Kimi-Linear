@@ -1,0 +1,9 @@
+actual_seq_len,batch_size,best_eval_accuracy,best_eval_loss,best_eval_step,dtype,file,final_eval_accuracy,final_eval_loss,final_step,final_train_loss,hidden_size,lr,model,param_count,requested_seq_len,status,steps,task,vocab_size
+65,2,0.9453125,0.26318359375,2000,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr1e_3_2000steps.jsonl,0.9453125,0.26318359375,2000,0.2421875,64,0.001,gdn,61636,32,ok,2000,palindrome,16
+65,2,0.37109375,1.865234375,2000,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr1e_3_2000steps.jsonl,0.37109375,1.865234375,2000,1.8359375,64,0.001,kda,86338,32,ok,2000,palindrome,16
+65,2,0.087890625,2.818359375,1400,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr1e_4_2000steps.jsonl,0.068359375,2.763671875,2000,2.75,64,0.0001,gdn,61636,32,ok,2000,palindrome,16
+65,2,0.08984375,2.814453125,1200,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr1e_4_2000steps.jsonl,0.064453125,2.802734375,2000,2.921875,64,0.0001,kda,86338,32,ok,2000,palindrome,16
+65,2,0.783203125,1.001953125,2000,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr5e_4_2000steps.jsonl,0.783203125,1.001953125,2000,0.8984375,64,0.0005,gdn,61636,32,ok,2000,palindrome,16
+65,2,0.19140625,2.408203125,1600,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr5e_4_2000steps.jsonl,0.162109375,2.3828125,2000,2.359375,64,0.0005,kda,86338,32,ok,2000,palindrome,16
+65,2,0.076171875,2.904296875,1,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr5e_5_2000steps.jsonl,0.05859375,2.884765625,2000,2.859375,64,5e-05,gdn,61636,32,ok,2000,palindrome,16
+65,2,0.083984375,2.904296875,600,bfloat16,artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr5e_5_2000steps.jsonl,0.05078125,2.8984375,2000,3.03125,64,5e-05,kda,86338,32,ok,2000,palindrome,16

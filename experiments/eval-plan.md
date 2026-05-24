@@ -97,6 +97,11 @@ for lr in 5e-5 1e-4 5e-4 1e-3; do
     --mlp-ratio 1 --dtype bfloat16 --lr "$lr" \
     --output "artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr${safe}_2000steps.jsonl"
 done
+
+conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
+  artifacts/synthetic_palindrome_easy_shortconv_bf16_b2_lr*_2000steps.jsonl \
+  --output artifacts/synthetic_palindrome_easy_lr_sweep_summary.json \
+  --csv-output artifacts/synthetic_palindrome_easy_lr_sweep_summary.csv
 ```
 
 Controls:

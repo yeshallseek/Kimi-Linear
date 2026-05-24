@@ -64,6 +64,13 @@ conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
 
 conda run -n kimi-linear python scripts/channel_gate_probe.py
 
+conda run -n kimi-linear python scripts/channel_gate_probe.py \
+  --seq-lengths 256 512 1024 2048 \
+  --samples 5000 \
+  --output artifacts/channel_gate_probe_paper_lengths.json \
+  --csv-output artifacts/channel_gate_probe_paper_lengths.csv \
+  --figure-output reports/figures/channel_gate_probe_paper_lengths.png
+
 PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scripts/synthetic_recall_probe.py \
   --task palindrome --models kda,gdn \
   --vocab-size 16 --seq-len 32 --steps 1000 --eval-every 100 --eval-batches 8 \
@@ -96,6 +103,7 @@ PYTORCH_ALLOC_CONF=expandable_segments:True conda run -n kimi-linear python scri
   - Task setup: one channel must preserve a signal from the first token; another channel receives noise and must reset for a final recent signal.
   - Scalar GDN's grid-best decay was `0.0` across sequence lengths 16-256, which forgets noise but also gives up the long signal; empirical MSE stayed about `0.96-1.01`.
   - KDA's grid-best decays were `alpha_long=1.0` and `alpha_short=0.0`, giving zero empirical MSE across the same sequence lengths.
+  - Paper-length rerun at 256, 512, 1024, and 2048 tokens preserved the same gap: scalar GDN stayed near MSE `0.99-1.02`, while KDA stayed at zero empirical MSE. Artifact: `artifacts/channel_gate_probe_paper_lengths.json`.
   - This directly supports the channel-wise selective retention/forgetting mechanism, but it is a recurrence-level causal probe, not a Figure 4 training reproduction. Artifact: `artifacts/channel_gate_probe.json`.
 - Tiny no-short-conv bf16 synthetic palindrome:
   - 2-step smoke completed for KDA and GDN without NaNs.

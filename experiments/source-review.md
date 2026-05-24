@@ -38,7 +38,7 @@ Learn the architectural mechanism behind Kimi Linear before building any UI, the
 - KDA is a constrained DPLR transition where the low-rank factors are tied to the key, reducing unstable reciprocal-decay work and several matrix multiplications versus general DPLR.
 - Kimi Linear interleaves KDA with full global MLA layers at a 3:1 ratio. The released 27-layer config uses 20 KDA layers plus 7 full-attention layers.
 - Claimed results:
-  - Synthetic probes: KDA achieves the best accuracy as sequence length grows from 256 to 2048 and converges faster than GDN on palindrome/MQAR.
+  - Synthetic probes: KDA achieves the best accuracy as sequence length grows from 256 to 2048 and converges faster than GDN on palindrome/MQAR. The paper uses 2 layers, 2 attention heads, head dimension 128, up to 20,000 steps, and an LR grid over `{5e-5, 1e-4, 5e-4, 1e-3}`.
   - Operator efficiency: KDA is roughly 2x faster than the general DPLR formulation up to 64k in the paper's kernel benchmark.
   - Full model: 48B total / 3B active MoE, trained with the same recipe as MLA/GDN-H baselines; Kimi Linear beats MLA/GDN-H on short-context, long-context, and RL-style evaluations.
   - Serving: KV cache use falls by up to 75%; decoding throughput rises up to 6x at 1M context due to fixed-size KDA state plus only periodic full attention.
@@ -88,6 +88,15 @@ For a CPU-safe recurrence-level mechanism probe while GPU memory is constrained:
 
 ```bash
 conda run -n kimi-linear python scripts/channel_gate_probe.py
+```
+
+To run the same mechanism probe at the paper's Figure 4 length range:
+
+```bash
+conda run -n kimi-linear python scripts/channel_gate_probe.py \
+  --seq-lengths 256 512 1024 2048 \
+  --output artifacts/channel_gate_probe_paper_lengths.json \
+  --csv-output artifacts/channel_gate_probe_paper_lengths.csv
 ```
 
 ## Minimal Causal Experiment

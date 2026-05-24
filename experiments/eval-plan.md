@@ -45,6 +45,15 @@ Command:
 conda run -n kimi-linear python scripts/channel_gate_probe.py
 ```
 
+Paper-length variant:
+
+```bash
+conda run -n kimi-linear python scripts/channel_gate_probe.py \
+  --seq-lengths 256 512 1024 2048 \
+  --output artifacts/channel_gate_probe_paper_lengths.json \
+  --csv-output artifacts/channel_gate_probe_paper_lengths.csv
+```
+
 Success criteria:
 
 - Scalar GDN has one best decay for both channels and incurs nonzero error when a task requires both long retention and short forgetting.

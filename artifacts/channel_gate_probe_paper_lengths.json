@@ -1,0 +1,98 @@
+{
+  "artifacts": {
+    "csv": "artifacts/channel_gate_probe_paper_lengths.csv",
+    "figure": null,
+    "json": "artifacts/channel_gate_probe_paper_lengths.json"
+  },
+  "config": {
+    "device": "cpu",
+    "grid_size": 1001,
+    "learn_lr": 0.1,
+    "learn_steps": 0,
+    "noise_std": 1.0,
+    "samples": 5000,
+    "seed": 42,
+    "seq_lengths": [
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "signal_std": 1.0
+  },
+  "env": {
+    "fla_core": "0.4.0",
+    "flash_linear_attention": "0.4.0",
+    "python": "3.11.14",
+    "torch": "2.9.0+cu128",
+    "torch_cuda": "12.8"
+  },
+  "results": [
+    {
+      "empirical_mse_ratio_gdn_over_kda": 990464036472.839,
+      "gdn_best_alpha": 0.0,
+      "gdn_empirical_mse": 0.990464036472839,
+      "gdn_theory_mse": 1.0,
+      "kda_best_alpha_long": 1.0,
+      "kda_best_alpha_short": 0.0,
+      "kda_empirical_mse": 0.0,
+      "kda_empirical_zero": true,
+      "learned_gdn_alpha": null,
+      "learned_gdn_mse": null,
+      "learned_kda_alpha": null,
+      "learned_kda_mse": null,
+      "seq_len": 256
+    },
+    {
+      "empirical_mse_ratio_gdn_over_kda": 1019244997098.5924,
+      "gdn_best_alpha": 0.0,
+      "gdn_empirical_mse": 1.0192449970985924,
+      "gdn_theory_mse": 1.0,
+      "kda_best_alpha_long": 1.0,
+      "kda_best_alpha_short": 0.0,
+      "kda_empirical_mse": 0.0,
+      "kda_empirical_zero": true,
+      "learned_gdn_alpha": null,
+      "learned_gdn_mse": null,
+      "learned_kda_alpha": null,
+      "learned_kda_mse": null,
+      "seq_len": 512
+    },
+    {
+      "empirical_mse_ratio_gdn_over_kda": 993763385067.8037,
+      "gdn_best_alpha": 0.0,
+      "gdn_empirical_mse": 0.9937633850678037,
+      "gdn_theory_mse": 1.0,
+      "kda_best_alpha_long": 1.0,
+      "kda_best_alpha_short": 0.0,
+      "kda_empirical_mse": 0.0,
+      "kda_empirical_zero": true,
+      "learned_gdn_alpha": null,
+      "learned_gdn_mse": null,
+      "learned_kda_alpha": null,
+      "learned_kda_mse": null,
+      "seq_len": 1024
+    },
+    {
+      "empirical_mse_ratio_gdn_over_kda": 990974166722.4508,
+      "gdn_best_alpha": 0.0,
+      "gdn_empirical_mse": 0.9909741667224508,
+      "gdn_theory_mse": 1.0,
+      "kda_best_alpha_long": 1.0,
+      "kda_best_alpha_short": 0.0,
+      "kda_empirical_mse": 0.0,
+      "kda_empirical_zero": true,
+      "learned_gdn_alpha": null,
+      "learned_gdn_mse": null,
+      "learned_kda_alpha": null,
+      "learned_kda_mse": null,
+      "seq_len": 2048
+    }
+  ],
+  "summary": {
+    "best_ratio_gdn_over_kda": 1019244997098.5924,
+    "claim_tested": "channel-wise KDA decay can retain a long-memory channel while forgetting a noisy short-memory channel; scalar GDN cannot satisfy both with one alpha",
+    "interpretation": "This is a recurrence-level causal probe, not a full Figure 4 reproduction.",
+    "ratio_note": "Ratios use max(kda_empirical_mse, 1e-12) because the grid-best KDA setting can be exactly zero-error."
+  }
+}

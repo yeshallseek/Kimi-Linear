@@ -5,7 +5,7 @@ Source: https://github.com/MoonshotAI/Kimi-Linear
 
 ## Summary
 
-Initial reproduction is now substantially stronger, but the learned synthetic result is still seed-sensitive and task-sensitive. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at reduced paper-like shapes, and got paper-shape learning results for palindrome, 64-stack state tracking, and Zoology-style MQAR. Across palindrome seeds `42`, `123`, and `7`, KDA learned reliably (`0.8981-0.9641`, mean final accuracy `0.9286`) while GDN was bimodal (mean `0.6701`). On paper-shape 64-stack at lr `1e-3`, KDA mean final accuracy was `0.9654` vs GDN `0.9424` over three seeds, with KDA higher on two seeds and tied on one; GDN still reached high accuracy earlier. The MQAR result depended on matching FLA full-model recurrent initialization: source-style KDA `dt_bias` initialization changed KDA from near chance to mean `0.9995` final accuracy over seeds `42`, `123`, and `7` on the hard high-vocab Zoology curriculum eval slice. Remaining gaps are the Mamba2 20k baseline and source-style baseline consolidation before UI work.
+Initial reproduction is now strong enough to start the UI phase, while keeping full-model serving and the Mamba2 20k baseline as later extensions. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at reduced paper-like shapes, and got paper-shape learning results for palindrome, 64-stack state tracking, and Zoology-style MQAR. Across palindrome seeds `42`, `123`, and `7`, KDA learned reliably (`0.8981-0.9641`, mean final accuracy `0.9286`) while GDN was bimodal (mean `0.6701`). On paper-shape 64-stack at lr `1e-3`, KDA mean final accuracy was `0.9654` vs GDN `0.9424` over three seeds, with KDA higher on two seeds and tied on one; GDN still reached high accuracy earlier. The MQAR result depended on matching FLA full-model recurrent initialization: source-style KDA `dt_bias` initialization changed KDA from near chance to mean `0.9995` final accuracy over seeds `42`, `123`, and `7` on the hard high-vocab Zoology curriculum eval slice. In the fair recurrent-only KDA/GDN baseline, both models solved by 2000 steps, but KDA showed the convergence-speed signal: mean step-400 accuracy was `0.8634` for KDA vs `0.1406` for GDN.
 
 ## What Was Tested
 
@@ -363,7 +363,8 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - With source-style KDA recurrent initialization, KDA now solves the hard Zoology curriculum eval slice: full source init reached `0.9988` final accuracy and `0.9993` best accuracy at 2000 steps.
   - Ablations isolate the effect to recurrent gate initialization. Recurrent-only source init reached `0.9695` final accuracy at 1000 steps; weights-only source init stayed at `0.00049`; source no-decay grouping without recurrent init stayed at `0.0014`.
   - A three-seed full-source-init KDA follow-up reached final accuracy `{42: 0.9988, 123: 0.9998, 7: 0.9999}`, mean `0.9995`.
-  - This changes the MQAR interpretation from “KDA non-reproduction” to “KDA reproduction depends on the full-model recurrent initialization, especially `dt_bias`.” Artifact: `artifacts/synthetic_mqar_zoology_source_init_ablation_summary.json`.
+  - A fair recurrent-only source-init KDA/GDN baseline over the same three seeds removed the full projection reinitialization confound. Both models solved by 2000 steps, but KDA learned earlier: mean step-400 accuracy was KDA `0.8634` vs GDN `0.1406`; mean final accuracy was KDA `0.9932` vs GDN `0.9893`.
+  - This changes the MQAR interpretation from “KDA non-reproduction” to “KDA reproduction depends on the full-model recurrent initialization, especially `dt_bias`.” Artifacts: `artifacts/synthetic_mqar_zoology_source_init_ablation_summary.json`, `artifacts/synthetic_mqar_zoology_recurrent_init_fair_baseline_3seed_summary.json`.
 - Free-GPU paper-shape 64-stack reproduction:
   - Used 64 stacks and actual sequence length 255, matching the paper-shape synthetic setting closely within the local generator.
   - Batch-4, 200-step smoke fit for KDA, GDN, and Mamba2. At 200 steps, GDN was ahead (`0.2165`) with KDA lower but learning (`0.1280`) and Mamba2 near chance (`0.0197`).
@@ -382,7 +383,7 @@ conda run -n kimi-linear python scripts/summarize_synthetic_runs.py \
   - Tiny short-conv bf16 runs are stable but too small/noisy to show the paper's KDA advantage; the two-seed easy palindrome LR grid favored GDN on the best mean score.
   - The early stack probe used 16 stacks, not the paper's 64 stacks. The later free-GPU 64-stack run is closer to paper shape and gives a KDA final-quality edge over three seeds.
   - The free-GPU paper-shape palindrome run shows robust KDA learning across three seeds, but GDN beats KDA on two of those seeds; the result is not a clean KDA-over-GDN reproduction.
-  - The free-GPU paper-shape MQAR run was initially negative for KDA. Generator validation fixed a major mismatch with Zoology MQAR, and the later source-initialization audit fixed the local KDA wrapper mismatch. KDA now solves the hard high-vocab Zoology curriculum eval slice across three seeds when initialized like the full FLA KDA model. Remaining caveat: the baseline comparison is sensitive to whether GDN uses default layer init or source-style full-model init.
+  - The free-GPU paper-shape MQAR run was initially negative for KDA. Generator validation fixed a major mismatch with Zoology MQAR, and the later source-initialization audit fixed the local KDA wrapper mismatch. KDA now solves the hard high-vocab Zoology curriculum eval slice across three seeds when initialized like the full FLA KDA model. Under recurrent-only source init, GDN also solves, but KDA reaches high accuracy much earlier.
   - The free-GPU paper-shape 64-stack run favors KDA on final accuracy, but GDN converges faster early, so it is not a clean reproduction of a KDA convergence-speed advantage.
 - The channel-gate probe is intentionally simpler than the paper's learned synthetic tasks; it validates the recurrence mechanism, not optimization under the paper's training setup.
 - The official MoonshotAI/Kimi-Linear repo contains report/model-card assets, not the full private training/eval code or datasets.
@@ -414,7 +415,6 @@ Separate official sources from third-party sources and cite URLs/commits used.
 ## Next Experiments
 
 - Diagnose or replace the Mamba2 20k baseline path; 2k works, but 20k hangs before the first eval record.
-- Decide whether to compare MQAR against GDN under source-style full-model init, default standalone layer init, or both.
-- Decide whether the current palindrome plus 64-stack evidence is sufficient to start UI design, or whether MQAR needs to be fixed first.
+- Start the UI design/build phase around the reproduced mechanism: KDA/GDN init controls, task selector, sequence length, seed, convergence curves, and artifact-backed command generation.
 - Rerun backward operator benchmarks at H=16/D=128 for 2k-64k lengths with the GPU free.
 - Build the UI only after the synthetic learning result is credible.

@@ -322,6 +322,8 @@ Observed result: the KDA failure above was traced to a wrapper-level initializat
 
 Three-seed follow-up: source-initialized KDA also solved seeds `123` and `7`. Across seeds `42`, `123`, and `7`, final accuracy was `{42: 0.9988, 123: 0.9998, 7: 0.9999}`, mean `0.9995`; best accuracy mean was `0.9997`. Artifact: `artifacts/synthetic_mqar_zoology_source_init_kda_3seed_summary.json`.
 
+Fair recurrent-only baseline: to remove the projection-weight reinitialization confound, reran KDA/GDN with `--source-init-scope recurrent --source-param-groups` over seeds `42`, `123`, and `7`. Both models solved by 2000 steps, but KDA learned the hard eval slice much earlier: mean step-400 accuracy was KDA `0.8634` vs GDN `0.1406`; mean step-600 accuracy was KDA `0.9632` vs GDN `0.8677`; mean final accuracy was KDA `0.9932` vs GDN `0.9893`. Artifacts: `artifacts/synthetic_mqar_zoology_recurrent_init_fair_baseline_3seed_summary.json`, `artifacts/synthetic_mqar_zoology_recurrent_init_fair_baseline_step_summary.json`.
+
 Free-GPU paper-shape 64-stack commands:
 
 ```bash

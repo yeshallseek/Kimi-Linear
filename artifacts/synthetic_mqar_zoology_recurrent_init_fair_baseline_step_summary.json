@@ -1,0 +1,267 @@
+{
+  "aggregates": [
+    {
+      "max_eval_accuracy": 0.33660888671875,
+      "mean_eval_accuracy": 0.14056396484375,
+      "min_eval_accuracy": 0.02001953125,
+      "model": "gdn",
+      "num_seeds": 3,
+      "step": 400
+    },
+    {
+      "max_eval_accuracy": 0.92401123046875,
+      "mean_eval_accuracy": 0.8677164713541666,
+      "min_eval_accuracy": 0.8323974609375,
+      "model": "gdn",
+      "num_seeds": 3,
+      "step": 600
+    },
+    {
+      "max_eval_accuracy": 0.977294921875,
+      "mean_eval_accuracy": 0.96246337890625,
+      "min_eval_accuracy": 0.95306396484375,
+      "model": "gdn",
+      "num_seeds": 3,
+      "step": 1000
+    },
+    {
+      "max_eval_accuracy": 0.99365234375,
+      "mean_eval_accuracy": 0.9892781575520834,
+      "min_eval_accuracy": 0.9866943359375,
+      "model": "gdn",
+      "num_seeds": 3,
+      "step": 2000
+    },
+    {
+      "max_eval_accuracy": 0.9635009765625,
+      "mean_eval_accuracy": 0.8634440104166666,
+      "min_eval_accuracy": 0.77001953125,
+      "model": "kda",
+      "num_seeds": 3,
+      "step": 400
+    },
+    {
+      "max_eval_accuracy": 0.99078369140625,
+      "mean_eval_accuracy": 0.96319580078125,
+      "min_eval_accuracy": 0.9361572265625,
+      "model": "kda",
+      "num_seeds": 3,
+      "step": 600
+    },
+    {
+      "max_eval_accuracy": 0.99749755859375,
+      "mean_eval_accuracy": 0.9872233072916666,
+      "min_eval_accuracy": 0.96954345703125,
+      "model": "kda",
+      "num_seeds": 3,
+      "step": 1000
+    },
+    {
+      "max_eval_accuracy": 0.9991455078125,
+      "mean_eval_accuracy": 0.9931844075520834,
+      "min_eval_accuracy": 0.98272705078125,
+      "model": "kda",
+      "num_seeds": 3,
+      "step": 2000
+    }
+  ],
+  "inputs": [
+    "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+    "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+    "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl"
+  ],
+  "rows": [
+    {
+      "eval_accuracy": 0.8568115234375,
+      "eval_loss": 2.328125,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 42,
+      "step": 400
+    },
+    {
+      "eval_accuracy": 0.9361572265625,
+      "eval_loss": 1.60546875,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 42,
+      "step": 600
+    },
+    {
+      "eval_accuracy": 0.96954345703125,
+      "eval_loss": 1.171875,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 42,
+      "step": 1000
+    },
+    {
+      "eval_accuracy": 0.98272705078125,
+      "eval_loss": 0.787109375,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 42,
+      "step": 2000
+    },
+    {
+      "eval_accuracy": 0.0650634765625,
+      "eval_loss": 6.65625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 42,
+      "step": 400
+    },
+    {
+      "eval_accuracy": 0.84674072265625,
+      "eval_loss": 1.8984375,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 42,
+      "step": 600
+    },
+    {
+      "eval_accuracy": 0.95703125,
+      "eval_loss": 1.03515625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 42,
+      "step": 1000
+    },
+    {
+      "eval_accuracy": 0.98748779296875,
+      "eval_loss": 0.63671875,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 42,
+      "step": 2000
+    },
+    {
+      "eval_accuracy": 0.77001953125,
+      "eval_loss": 2.9296875,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 123,
+      "step": 400
+    },
+    {
+      "eval_accuracy": 0.962646484375,
+      "eval_loss": 1.625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 123,
+      "step": 600
+    },
+    {
+      "eval_accuracy": 0.99462890625,
+      "eval_loss": 0.853515625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 123,
+      "step": 1000
+    },
+    {
+      "eval_accuracy": 0.9976806640625,
+      "eval_loss": 0.607421875,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 123,
+      "step": 2000
+    },
+    {
+      "eval_accuracy": 0.33660888671875,
+      "eval_loss": 4.890625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 123,
+      "step": 400
+    },
+    {
+      "eval_accuracy": 0.92401123046875,
+      "eval_loss": 1.5390625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 123,
+      "step": 600
+    },
+    {
+      "eval_accuracy": 0.977294921875,
+      "eval_loss": 0.88671875,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 123,
+      "step": 1000
+    },
+    {
+      "eval_accuracy": 0.99365234375,
+      "eval_loss": 0.509765625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed123_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 123,
+      "step": 2000
+    },
+    {
+      "eval_accuracy": 0.9635009765625,
+      "eval_loss": 1.80859375,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 7,
+      "step": 400
+    },
+    {
+      "eval_accuracy": 0.99078369140625,
+      "eval_loss": 1.140625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 7,
+      "step": 600
+    },
+    {
+      "eval_accuracy": 0.99749755859375,
+      "eval_loss": 0.736328125,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 7,
+      "step": 1000
+    },
+    {
+      "eval_accuracy": 0.9991455078125,
+      "eval_loss": 0.50390625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "kda",
+      "seed": 7,
+      "step": 2000
+    },
+    {
+      "eval_accuracy": 0.02001953125,
+      "eval_loss": 7.484375,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 7,
+      "step": 400
+    },
+    {
+      "eval_accuracy": 0.8323974609375,
+      "eval_loss": 2.0390625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 7,
+      "step": 600
+    },
+    {
+      "eval_accuracy": 0.95306396484375,
+      "eval_loss": 1.0546875,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 7,
+      "step": 1000
+    },
+    {
+      "eval_accuracy": 0.9866943359375,
+      "eval_loss": 0.619140625,
+      "file": "artifacts/synthetic_mqar_zoology_curriculum_sourceinit_recurrent_sourcewd_bf16_b128_v8192_evalp64_seed7_lr1e_3_2000steps_freegpu.jsonl",
+      "model": "gdn",
+      "seed": 7,
+      "step": 2000
+    }
+  ]
+}

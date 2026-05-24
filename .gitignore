@@ -12,3 +12,7 @@ artifacts/tmp/
 *.ckpt
 *.pt
 *.pth
+
+# UI workspace
+ui/node_modules/
+ui/dist/

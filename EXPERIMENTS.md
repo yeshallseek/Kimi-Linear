@@ -35,7 +35,8 @@ Learn Kimi Linear's architectural breakthrough by reproducing tractable mechanis
 - [x] Source/context captured
 - [x] Environment installed
 - [x] Smoke test completed
-- [ ] Main experiment completed
+- [x] Main experiment completed
+- [x] UI prototype built after reproduction
 - [x] Report written
 
 ## Run Log
@@ -80,3 +81,4 @@ Append notable runs here and keep machine-readable records in `experiments/runs.
 - 2026-05-24 02:50 PDT: audited the standalone KDA/GDN layer wrapper against FLA full-model initialization. Found that full `KDAPreTrainedModel._init_weights` initializes KDA `dt_bias` from log-uniform `dt in [0.001, 0.1]`, while the bare `KimiDeltaAttention` layer leaves `dt_bias=0`. Added explicit `--source-init`, `--source-init-scope`, and `--source-param-groups` controls. With source-style KDA recurrent initialization, the hard Zoology curriculum MQAR eval slice is now reproduced for KDA: KDA reached `0.9988` final / `0.9993` best accuracy at 2000 steps; recurrent-only init reached `0.9695` at 1000 steps; weights-only init stayed at chance (`0.00049` at 1000 steps); no-decay grouping without recurrent init also stayed near chance (`0.0014`). This isolates the rescue to the recurrent gate initialization, especially `dt_bias`. Artifact: `artifacts/synthetic_mqar_zoology_source_init_ablation_summary.json`.
 - 2026-05-24 02:57 PDT: repeated source-initialized KDA on the hard Zoology curriculum MQAR eval slice for seeds `123` and `7`. Together with seed `42`, KDA source-init final accuracy was `{42: 0.9988, 123: 0.9998, 7: 0.9999}`, mean `0.9995`. This confirms the MQAR reproduction is not a seed-42 fluke. Artifact: `artifacts/synthetic_mqar_zoology_source_init_kda_3seed_summary.json`.
 - 2026-05-24 03:06 PDT: ran a fairer recurrent-only source-init KDA/GDN baseline on Zoology curriculum MQAR over seeds `42`, `123`, and `7`. This avoids the full projection-weight reinitialization confound while giving KDA the missing recurrent gate init. Both models solved the hard eval slice by 2000 steps, but KDA learned earlier: mean step-400 accuracy was KDA `0.8634` vs GDN `0.1406`; mean final accuracy was KDA `0.9932` vs GDN `0.9893`. Artifacts: `artifacts/synthetic_mqar_zoology_recurrent_init_fair_baseline_3seed_summary.json`, `artifacts/synthetic_mqar_zoology_recurrent_init_fair_baseline_step_summary.json`.
+- 2026-05-24 03:17 PDT: built a local Vite/Tailwind React experiment console after reproduction. The UI surfaces the reproduced KDA mechanism, MQAR convergence, task outcomes, operator speed, initialization ablations, artifact index, and a command generator for follow-up GPU runs. Verified `npm run build` and headless Chrome desktop/mobile rendering with no page-level horizontal overflow. UI path: `ui/`; local dev URL: `http://localhost:5173/`.

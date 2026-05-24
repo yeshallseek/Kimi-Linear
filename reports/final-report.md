@@ -7,6 +7,10 @@ Source: https://github.com/MoonshotAI/Kimi-Linear
 
 Initial reproduction is now strong enough to start the UI phase, while keeping full-model serving and the Mamba2 20k baseline as later extensions. I reproduced KDA kernel correctness against FLA's naive recurrent reference, reproduced the operator-speed direction for KDA vs DPLR at reduced paper-like shapes, and got paper-shape learning results for palindrome, 64-stack state tracking, and Zoology-style MQAR. Across palindrome seeds `42`, `123`, and `7`, KDA learned reliably (`0.8981-0.9641`, mean final accuracy `0.9286`) while GDN was bimodal (mean `0.6701`). On paper-shape 64-stack at lr `1e-3`, KDA mean final accuracy was `0.9654` vs GDN `0.9424` over three seeds, with KDA higher on two seeds and tied on one; GDN still reached high accuracy earlier. The MQAR result depended on matching FLA full-model recurrent initialization: source-style KDA `dt_bias` initialization changed KDA from near chance to mean `0.9995` final accuracy over seeds `42`, `123`, and `7` on the hard high-vocab Zoology curriculum eval slice. In the fair recurrent-only KDA/GDN baseline, both models solved by 2000 steps, but KDA showed the convergence-speed signal: mean step-400 accuracy was `0.8634` for KDA vs `0.1406` for GDN.
 
+## Experiment UI
+
+After the reproduction phase, I added a local Vite/Tailwind React dashboard in `ui/`. It summarizes the reproduced KDA mechanism, task outcomes, operator-speed checks, MQAR convergence, source-init ablations, and artifact provenance, and includes a command generator for follow-up GPU runs using the validated `scripts/synthetic_recall_probe.py` path. The local dev server is intended to run at `http://localhost:5173/`.
+
 ## What Was Tested
 
 - Official MoonshotAI/Kimi-Linear repo at `8c1d85eb6b5f8fcefb15758691b0ce50b0827ce3`.

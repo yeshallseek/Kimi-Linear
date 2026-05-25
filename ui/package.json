@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "api": "node server.js",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0"
   },

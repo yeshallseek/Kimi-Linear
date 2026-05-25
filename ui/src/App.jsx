@@ -6,10 +6,14 @@ import {
   ExternalLink,
   Gauge,
   GitBranch,
+  MessageSquare,
   Play,
+  RefreshCw,
+  Send,
+  Server,
   SlidersHorizontal,
 } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ablationRows,
   artifacts,
@@ -38,6 +42,18 @@ const initOptions = [
   { value: "full", label: "Full" },
   { value: "none", label: "Legacy" },
 ];
+
+const apiBase =
+  import.meta.env.VITE_KIMI_API_BASE ||
+  `${window.location.protocol}//${window.location.hostname || "127.0.0.1"}:5174`;
+
+const viewOptions = [
+  { value: "chat", label: "Pretrained chat" },
+  { value: "reproduction", label: "Reproduction" },
+];
+
+const defaultSystemPrompt =
+  "You are Kimi Linear 48B-A3B Instruct running locally through a GGUF quant. Answer directly and note uncertainty.";
 
 function formatAccuracy(value) {
   return value.toFixed(3);
@@ -91,17 +107,18 @@ function buildCommand(config) {
   ].join(" \\\n");
 }
 
-function Header() {
+function Header({ view, setView }) {
   return (
     <header className="border-b border-zinc-950/10 bg-white/82 backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
         <div className="min-w-0">
-          <p className="font-mono text-base text-zinc-600 sm:text-sm">Kimi Linear reproduction</p>
+          <p className="font-mono text-base text-zinc-600 sm:text-sm">Kimi Linear model lab</p>
           <h1 className="mt-1 max-w-[18ch] text-2xl font-semibold tracking-tight text-balance text-zinc-950 sm:text-3xl">
-            KDA experiment console
+            Local Kimi console
           </h1>
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-2 text-base text-zinc-700 sm:text-sm">
+          <SegmentControl value={view} onChange={setView} options={viewOptions} ariaLabel="View" />
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-zinc-950/10 bg-white px-2.5 py-1.5">
             <GitBranch className="size-4 shrink-0 stroke-zinc-500" />
             <span className="truncate">{projectMeta.branch}</span>
@@ -586,6 +603,303 @@ function CommandPanel() {
   );
 }
 
+function ChatLab() {
+  const [status, setStatus] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [systemPrompt, setSystemPrompt] = useState(defaultSystemPrompt);
+  const [prompt, setPrompt] = useState("Write a concise checklist for testing a local LLM inference server.");
+  const [settings, setSettings] = useState({ temperature: 0.7, topP: 0.9, maxTokens: 256 });
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState("");
+
+  const refreshStatus = async () => {
+    try {
+      const [statusResponse, historyResponse] = await Promise.all([
+        fetch(`${apiBase}/api/status`),
+        fetch(`${apiBase}/api/history`),
+      ]);
+      setStatus(await statusResponse.json());
+      setHistory((await historyResponse.json()).runs || []);
+    } catch (requestError) {
+      setStatus({ backend: false, error: requestError.message });
+    }
+  };
+
+  useEffect(() => {
+    refreshStatus();
+    const timer = window.setInterval(refreshStatus, 8000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const updateSetting = (key, value) => {
+    setSettings((current) => ({ ...current, [key]: value }));
+  };
+
+  const submitPrompt = async () => {
+    const userPrompt = prompt.trim();
+    if (!userPrompt || isRunning) return;
+
+    const nextMessages = [
+      ...(systemPrompt.trim() ? [{ role: "system", content: systemPrompt.trim() }] : []),
+      ...messages,
+      { role: "user", content: userPrompt },
+    ];
+    setMessages((current) => [...current, { role: "user", content: userPrompt }]);
+    setPrompt("");
+    setIsRunning(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${apiBase}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: nextMessages, ...settings }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Generation failed");
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: payload.output || "",
+          runId: payload.runId,
+          latencyMs: payload.latencyMs,
+        },
+      ]);
+      refreshStatus();
+    } catch (requestError) {
+      setError(requestError.message);
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: `Error: ${requestError.message}`, error: true },
+      ]);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    setError("");
+  };
+
+  const llamaReady = Boolean(status?.llama?.ok);
+
+  return (
+    <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
+      <section className="min-w-0 rounded-lg border border-zinc-950/10 bg-white">
+        <div className="border-b border-zinc-950/10 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-base text-zinc-600 sm:text-sm">
+                <MessageSquare className="size-4 shrink-0 stroke-signal-600" />
+                <span>ymcki GGUF / MXFP4_MOE</span>
+              </div>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-balance text-zinc-950">
+                Pretrained Kimi chat
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-base sm:text-sm">
+              <span
+                className={[
+                  "rounded-md border px-2.5 py-1.5",
+                  llamaReady
+                    ? "border-signal-600/20 bg-signal-50 text-signal-700"
+                    : "border-ember-600/20 bg-ember-50 text-ember-700",
+                ].join(" ")}
+              >
+                {llamaReady ? "llama-server ready" : "llama-server offline"}
+              </span>
+              <button
+                type="button"
+                onClick={refreshStatus}
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-white py-2 pr-3 pl-2 text-sm font-medium text-zinc-800 ring-1 ring-zinc-950/10"
+              >
+                <RefreshCw className="size-4 shrink-0 stroke-zinc-500" />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-[420px] space-y-4 p-5">
+          {messages.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-zinc-950/15 bg-zinc-50 p-5">
+              <p className="max-w-[62ch] text-base text-pretty text-zinc-600 sm:text-sm">No turns in this session.</p>
+            </div>
+          ) : (
+            messages.map((message, index) => (
+              <div
+                key={`${message.role}-${index}`}
+                className={[
+                  "max-w-[82ch] rounded-lg border p-4",
+                  message.role === "user"
+                    ? "ml-auto border-cobalt-600/20 bg-cobalt-50"
+                    : message.error
+                      ? "border-ember-600/20 bg-ember-50"
+                      : "border-zinc-950/10 bg-zinc-50",
+                ].join(" ")}
+              >
+                <div className="mb-2 flex items-center justify-between gap-3 text-base sm:text-sm">
+                  <span className="font-medium text-zinc-900">{message.role === "user" ? "You" : "Kimi"}</span>
+                  {message.latencyMs ? (
+                    <span className="font-mono text-zinc-500">{(message.latencyMs / 1000).toFixed(1)}s</span>
+                  ) : null}
+                </div>
+                <p className="whitespace-pre-wrap text-base text-zinc-700 sm:text-sm">{message.content}</p>
+                {message.runId ? <p className="mt-3 break-all font-mono text-base text-zinc-500 sm:text-sm">{message.runId}</p> : null}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="border-t border-zinc-950/10 p-5">
+          {error ? <p className="mb-3 text-base text-ember-700 sm:text-sm">{error}</p> : null}
+          <div className="grid gap-3">
+            <textarea
+              id="kimi-prompt"
+              name="prompt"
+              rows={4}
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              onKeyDown={(event) => {
+                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") submitPrompt();
+              }}
+              aria-label="Prompt"
+              className="w-full resize-y rounded-lg bg-white p-3 text-base text-zinc-950 ring-1 ring-zinc-950/10 focus:outline-2 focus:-outline-offset-1 focus:outline-signal-600 sm:text-sm"
+            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={submitPrompt}
+                disabled={isRunning || !prompt.trim()}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-signal-600 py-2 pr-3 pl-2 text-sm font-medium text-white ring-1 ring-signal-600 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:ring-zinc-300"
+              >
+                <Send className="size-4 shrink-0 stroke-white" />
+                {isRunning ? "Running" : "Run prompt"}
+              </button>
+              <button
+                type="button"
+                onClick={clearChat}
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-zinc-800 ring-1 ring-zinc-950/10"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside className="min-w-0 space-y-5">
+        <section className="rounded-lg border border-zinc-950/10 bg-white p-5">
+          <div className="flex items-start gap-3">
+            <Server className="mt-1 size-4 shrink-0 stroke-cobalt-600" />
+            <div className="min-w-0">
+              <h2 className="text-xl font-semibold tracking-tight text-balance text-zinc-950">Runtime</h2>
+              <dl className="mt-4 space-y-3 text-base sm:text-sm">
+                <div>
+                  <dt className="font-medium text-zinc-900">Model</dt>
+                  <dd className="mt-1 break-all font-mono text-zinc-500">MXFP4_MOE.gguf</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-zinc-900">Backend</dt>
+                  <dd className="mt-1 break-all font-mono text-zinc-500">{apiBase}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-zinc-900">llama.cpp</dt>
+                  <dd className="mt-1 break-all font-mono text-zinc-500">
+                    {status?.llamaUrl || "http://127.0.0.1:8081"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-zinc-950/10 bg-white p-5">
+          <h2 className="text-xl font-semibold tracking-tight text-balance text-zinc-950">Settings</h2>
+          <div className="mt-4 space-y-4">
+            <Control label="System" id="system-prompt">
+              <textarea
+                id="system-prompt"
+                name="systemPrompt"
+                rows={5}
+                value={systemPrompt}
+                onChange={(event) => setSystemPrompt(event.target.value)}
+                className="w-full resize-y rounded-lg bg-white p-3 text-base text-zinc-950 ring-1 ring-zinc-950/10 focus:outline-2 focus:-outline-offset-1 focus:outline-signal-600 sm:text-sm"
+              />
+            </Control>
+            <Control label="Temperature" id="temperature">
+              <input
+                id="temperature"
+                name="temperature"
+                type="number"
+                min="0"
+                max="2"
+                step="0.05"
+                value={settings.temperature}
+                onChange={(event) => updateSetting("temperature", Number(event.target.value))}
+                className="w-full rounded-lg bg-white px-3 py-2.5 text-base ring-1 ring-zinc-950/10 sm:py-2 sm:text-sm"
+              />
+            </Control>
+            <Control label="Top-p" id="top-p">
+              <input
+                id="top-p"
+                name="topP"
+                type="number"
+                min="0.05"
+                max="1"
+                step="0.05"
+                value={settings.topP}
+                onChange={(event) => updateSetting("topP", Number(event.target.value))}
+                className="w-full rounded-lg bg-white px-3 py-2.5 text-base ring-1 ring-zinc-950/10 sm:py-2 sm:text-sm"
+              />
+            </Control>
+            <Control label="Max tokens" id="max-tokens">
+              <input
+                id="max-tokens"
+                name="maxTokens"
+                type="number"
+                min="16"
+                max="2048"
+                step="16"
+                value={settings.maxTokens}
+                onChange={(event) => updateSetting("maxTokens", Number(event.target.value))}
+                className="w-full rounded-lg bg-white px-3 py-2.5 text-base ring-1 ring-zinc-950/10 sm:py-2 sm:text-sm"
+              />
+            </Control>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-zinc-950/10 bg-white p-5">
+          <h2 className="text-xl font-semibold tracking-tight text-balance text-zinc-950">Recent runs</h2>
+          <div className="mt-4 divide-y divide-zinc-950/10">
+            {history.length === 0 ? (
+              <p className="text-base text-zinc-500 sm:text-sm">No chat runs yet.</p>
+            ) : (
+              history.slice(0, 6).map((run) => (
+                <div key={run.run_id} className="py-3">
+                  <div className="flex items-center justify-between gap-3 text-base sm:text-sm">
+                    <span className={run.status === "ok" ? "text-signal-700" : "text-ember-700"}>{run.status}</span>
+                    <span className="font-mono text-zinc-500">
+                      {run.results?.latency_ms ? `${(run.results.latency_ms / 1000).toFixed(1)}s` : ""}
+                    </span>
+                  </div>
+                  <p className="mt-1 break-all font-mono text-base text-zinc-500 sm:text-sm">{run.run_id}</p>
+                  {run.results?.output_preview ? (
+                    <p className="mt-1 line-clamp-3 text-base text-zinc-600 sm:text-sm">{run.results.output_preview}</p>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </aside>
+    </main>
+  );
+}
+
 function Control({ label, id, children }) {
   return (
     <div>
@@ -626,47 +940,54 @@ function ArtifactPanel() {
 
 export default function App() {
   const [selectedTask, setSelectedTask] = useState("mqar");
+  const [view, setView] = useState("chat");
 
   return (
     <div className="min-h-screen text-zinc-950">
-      <Header />
-      <StatGrid />
-      <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
-        <div className="min-w-0 space-y-5">
-          <MechanismPanel />
-          <CurvePanel />
-          <TaskPanel selectedTask={selectedTask} setSelectedTask={setSelectedTask} />
-          <OperatorPanel />
-          <CommandPanel />
-        </div>
-        <aside className="min-w-0 space-y-5">
-          <AblationPanel />
-          <ArtifactPanel />
-          <section className="rounded-lg border border-zinc-950/10 bg-white p-5">
-            <div className="flex items-start gap-3">
-              <Play className="mt-1 size-4 shrink-0 stroke-signal-600" />
-              <div className="min-w-0">
-                <h2 className="text-xl font-semibold tracking-tight text-balance text-zinc-950">Next run focus</h2>
-                <p className="mt-2 text-base text-pretty text-zinc-600 sm:text-sm">
-                  Vary `source-init-scope`, sequence length, and seed first; those are the levers that changed the
-                  reproduction outcome.
-                </p>
-              </div>
+      <Header view={view} setView={setView} />
+      {view === "chat" ? (
+        <ChatLab />
+      ) : (
+        <>
+          <StatGrid />
+          <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
+            <div className="min-w-0 space-y-5">
+              <MechanismPanel />
+              <CurvePanel />
+              <TaskPanel selectedTask={selectedTask} setSelectedTask={setSelectedTask} />
+              <OperatorPanel />
+              <CommandPanel />
             </div>
-          </section>
-          <section className="rounded-lg border border-zinc-950/10 bg-white p-5">
-            <div className="flex items-start gap-3">
-              <SlidersHorizontal className="mt-1 size-4 shrink-0 stroke-cobalt-600" />
-              <div className="min-w-0">
-                <h2 className="text-xl font-semibold tracking-tight text-balance text-zinc-950">Hardware path</h2>
-                <p className="mt-2 break-words text-base text-pretty text-zinc-600 sm:text-sm">
-                  {projectMeta.environment}
-                </p>
-              </div>
-            </div>
-          </section>
-        </aside>
-      </main>
+            <aside className="min-w-0 space-y-5">
+              <AblationPanel />
+              <ArtifactPanel />
+              <section className="rounded-lg border border-zinc-950/10 bg-white p-5">
+                <div className="flex items-start gap-3">
+                  <Play className="mt-1 size-4 shrink-0 stroke-signal-600" />
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-semibold tracking-tight text-balance text-zinc-950">Next run focus</h2>
+                    <p className="mt-2 text-base text-pretty text-zinc-600 sm:text-sm">
+                      Vary `source-init-scope`, sequence length, and seed first; those are the levers that changed the
+                      reproduction outcome.
+                    </p>
+                  </div>
+                </div>
+              </section>
+              <section className="rounded-lg border border-zinc-950/10 bg-white p-5">
+                <div className="flex items-start gap-3">
+                  <SlidersHorizontal className="mt-1 size-4 shrink-0 stroke-cobalt-600" />
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-semibold tracking-tight text-balance text-zinc-950">Hardware path</h2>
+                    <p className="mt-2 break-words text-base text-pretty text-zinc-600 sm:text-sm">
+                      {projectMeta.environment}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </main>
+        </>
+      )}
     </div>
   );
 }

@@ -14,6 +14,8 @@ Initial source: https://github.com/MoonshotAI/Kimi-Linear
 | Official kernel | https://github.com/fla-org/flash-linear-attention/tree/main/fla/ops/kda | local `/home/ye/ml-experiments/flash-linear-attention` at `1c403c3a82896ca0dd2ef8a952a85e3bdbffc941`; upstream HEAD observed `abfa403de2146b9a2ab762a603f8fdb61cc3c166` | KDA implementation, tests, and `benchmarks/ops/benchmark_kda.py`. The installed env has `flash-linear-attention==0.4.0` and `fla-core==0.4.0`. |
 | Primary task reference | https://github.com/HazyResearch/zoology | local inspection clone `/tmp/zoology-mqar-inspect`; `zoology/data/multiquery_ar.py` | Source implementation for the MQAR task cited by the paper. It defines vocab 8192, power-law query gaps, random non-query fillers, upper-half value tokens, and one query per key. |
 | Maintainer docs | https://docs.vllm.ai/projects/recipes/en/latest/moonshotai/Kimi-Linear.html | vLLM recipe dated 2026-04-28 | Current serving guidance; warns to avoid vLLM 0.12.0 and assumes 4-GPU or 8-GPU tensor parallel for the full checkpoint. |
+| Third-party GGUF runtime | https://huggingface.co/ymcki/Kimi-Linear-48B-A3B-Instruct-GGUF | checked 2026-05-24; `MXFP4_MOE` file is 25.34 GiB | Quantized pretrained Instruct checkpoint intended for a custom Kimi-Linear `llama.cpp` branch. The model card says `MXFP4_MOE` is a good quant that can run long context on a single 32GB card. |
+| Third-party GGUF runtime source | https://github.com/ymcki/llama.cpp/tree/Kimi-Linear | branch `Kimi-Linear` at `a46782c1b76a08747ddc1aae320c35401a03227c` on 2026-02-13 | Required by the GGUF model card; stock llama.cpp support is not assumed. Build with `GGML_CUDA=ON` and run `llama-cli` / `llama-server` on GPU. |
 | Local prior attempt | `/home/ye/ml-experiments/Kimi-Linear` | branch `play` at `1a4ebd9058878a3f053d8b06cd55ebd2ca68355e`; dirty: untracked `run_inference.py` | Existing fork with user/local attempts using `cyankiwi/Kimi-Linear-48B-A3B-Instruct-AWQ-4bit`. Useful as prior context, but not used as the clean experiment repo. |
 | Current experiment repo | `/home/ye/ml-experiments/kimi-linear-attention` | branch `reproduce/kimi-linear-source-review` from official `8c1d85e` | Clean lab notebook and reproduction harness location. |
 
@@ -21,7 +23,7 @@ Initial source: https://github.com/MoonshotAI/Kimi-Linear
 
 - Official paper/project/repo/model/data sources: arXiv tech report, MoonshotAI/Kimi-Linear, MoonshotAI Hugging Face Base/Instruct checkpoints, FLA KDA implementation.
 - Maintainer or dependency docs: vLLM Kimi-Linear recipe; FLA tests and benchmarks in the local flash-linear-attention clone.
-- Third-party reproductions, forks, blogs, or forum notes: `cyankiwi` AWQ model and the older local fork are useful only as single-GPU inference context. They are not primary evidence for the architecture claims.
+- Third-party reproductions, forks, blogs, or forum notes: `ymcki` GGUF and custom Kimi-Linear `llama.cpp`, `cyankiwi` AWQ model, and the older local fork are useful only as single-GPU inference context. They are not primary evidence for the architecture claims.
 - Unresolved candidate sources: the paper mentions vLLM implementation, but the official Kimi-Linear GitHub repo only documents vLLM usage; concrete vLLM support lives in vLLM releases and remote model code. Need verify with an actual vLLM smoke run later.
 
 ## Objective
@@ -32,6 +34,7 @@ Learn the architectural mechanism behind Kimi Linear before building any UI, the
 2. Reproduce the paper's operator-level speed direction: KDA should be materially faster than a general DPLR delta-rule formulation at useful sequence lengths.
 3. Reproduce a scaled version of the synthetic-task result from Figure 4: KDA should learn copy/recall/state-tracking probes better or faster than GDN/Mamba2 under matched tiny-model settings.
 4. Only after those pass, attempt full-model inference or long-context serving and then build a UI around the experiment controls/results.
+5. New model-lab extension: try the pretrained `moonshotai/Kimi-Linear-48B-A3B-Instruct` behavior locally through `ymcki/Kimi-Linear-48B-A3B-Instruct-GGUF`, then expose a private Tailscale chat UI for prompt experiments.
 
 ## Key Claims or Features
 
@@ -100,6 +103,24 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py \
   --csv-output artifacts/channel_gate_probe_paper_lengths.csv
 ```
 
+For the pretrained GGUF model-lab phase, the smallest credible path is:
+
+```bash
+git clone https://github.com/ymcki/llama.cpp /home/ye/ml-experiments/llama.cpp-kimi-linear
+cd /home/ye/ml-experiments/llama.cpp-kimi-linear
+git checkout a46782c1b76a08747ddc1aae320c35401a03227c
+cmake -B build -G Ninja -DGGML_CUDA=ON
+cmake --build build --config Release -j 6
+
+huggingface-cli download ymcki/Kimi-Linear-48B-A3B-Instruct-GGUF \
+  --include Kimi-Linear-48B-A3B-Instruct.MXFP4_MOE.gguf \
+  --local-dir models/ymcki-Kimi-Linear-48B-A3B-Instruct-GGUF
+
+/home/ye/ml-experiments/llama.cpp-kimi-linear/build/bin/llama-server \
+  -m models/ymcki-Kimi-Linear-48B-A3B-Instruct-GGUF/Kimi-Linear-48B-A3B-Instruct.MXFP4_MOE.gguf \
+  -c 8192 -ngl 100 --host 0.0.0.0 --port 8081
+```
+
 ## Minimal Causal Experiment
 
 - Simplest faithful experiment: run FLA KDA forward/backward against naive recurrent KDA on tiny random tensors, then benchmark KDA vs DPLR/GDN/FlashAttention for the same tensor shapes.
@@ -110,6 +131,7 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py \
 - Success: KDA correctness matches naive implementation within FLA test tolerances; KDA operator median latency is lower than DPLR at the selected lengths; KDA reaches higher accuracy or the same accuracy in fewer steps than GDN/Mamba2 on at least one synthetic task.
 - Falsification or caveat: KDA fails correctness on this GPU/env; KDA is not faster than DPLR under identical local shapes; synthetic training shows no accuracy/convergence advantage after matched seeds and learning-rate sweeps.
 - Current synthetic status: memory-safe vocab-16, hidden-64 probes did not reproduce KDA's Figure 4 advantage and should be treated as constrained negative controls. After reclaiming the GPU, the paper-shape palindrome setup (2 layers, 2 heads, head_dim 128, hidden 256, seq_len 256, vocab 128, batch 4) showed robust KDA learning across seeds `42`, `123`, and `7` at 20,000 steps, with mean final accuracy `0.9286`. GDN was seed-sensitive: it failed on seed `42` (`0.0389`) but reached `0.9808` and `0.9906` on seeds `123` and `7`, giving mean final accuracy `0.6701`. This supports KDA robustness but does not reproduce a per-seed KDA win over GDN. Paper-shape 64-stack state tracking is also positive: at lr `1e-3` over seeds `42`, `123`, and `7`, KDA mean final accuracy was `0.9654` vs GDN `0.9424`, with KDA higher on two seeds and tied on one; GDN still converged faster early. MQAR is now reproduced for source-initialized KDA. The original local contiguous MQAR generator was not faithful to Zoology MQAR, and the first corrected high-vocab runs failed for KDA. Auditing FLA's full KDA model revealed the local tiny wrapper missed source-style recurrent initialization: full `KDAPreTrainedModel._init_weights` samples `dt_bias` from log-uniform time constants, while bare `KimiDeltaAttention` initializes `dt_bias=0`. After adding explicit source-init controls, KDA solved the hard Zoology curriculum eval slice. Full source init reached mean final accuracy `0.9995` over seeds `42`, `123`, and `7`. A fairer recurrent-only source-init KDA/GDN baseline also solved for both models and shows the convergence-speed signal: mean step-400 accuracy was KDA `0.8634` vs GDN `0.1406`, while mean final accuracy was close at KDA `0.9932` vs GDN `0.9893`. Weights-only init and optimizer no-decay grouping without recurrent init stayed near chance, isolating the effect to KDA's recurrent gate initialization. This is sufficient to start the UI phase, while keeping Mamba2 and full-model serving as later extensions.
+- Pretrained GGUF model-lab success criterion: build the custom runtime, load the `MXFP4_MOE` quant fully on GPU with `-ngl 100`, generate a short documented response, record latency/VRAM/failure mode, then expose a private Tailscale UI that saves each prompt run to `experiments/runs.jsonl`.
 
 ## RTX 5090 Fit
 
@@ -120,6 +142,7 @@ conda run -n kimi-linear python scripts/channel_gate_probe.py \
   - Operator benchmark at 4k-64k, B=1/H=16/D=128: grows quickly; run short lengths first while GPU is occupied.
   - Tiny synthetic training: configurable; start with hidden_size 256, 2 layers, 2 heads, seq_len 256.
   - Full 48B BF16 checkpoint: not feasible on one 32GB GPU. Even AWQ 4-bit may be tight with KV/state/cache overhead.
+  - `ymcki` GGUF `MXFP4_MOE`: 25.34 GiB file. The model card says it can run on a single 32GB card; local smoke should start with context 8192 and `-ngl 100`, then scale context only after VRAM is measured.
 - Precision: start with float16/bfloat16 GPU kernels; use float32 only for naive correctness where FLA tests do.
 - Scaling changes from paper: no 1.4T/5.7T pretraining, no 48B matched baselines, no 128k/1M benchmark suite initially. The local reproduction targets mechanism-level claims first.
 

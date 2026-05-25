@@ -11,6 +11,10 @@ Initial reproduction is now strong enough to start the UI phase, while keeping f
 
 After the reproduction phase, I added a local Vite/Tailwind React dashboard in `ui/`. It summarizes the reproduced KDA mechanism, task outcomes, operator-speed checks, MQAR convergence, source-init ablations, and artifact provenance, and includes a command generator for follow-up GPU runs using the validated `scripts/synthetic_recall_probe.py` path. The local dev server is intended to run at `http://localhost:5173/`.
 
+## Pretrained GGUF Trial
+
+The actual pretrained Instruct model is now available locally through `ymcki/Kimi-Linear-48B-A3B-Instruct-GGUF` with the `MXFP4_MOE` quant. The official BF16 checkpoint remains too large for one RTX 5090, but this 25.33 GiB GGUF loaded with the custom `ymcki/llama.cpp` Kimi-Linear branch at `a46782c1b76a08747ddc1aae320c35401a03227c`. Runtime launch uses `scripts/start_kimi_gguf_server.sh`; the chat proxy uses `scripts/start_kimi_chat_ui.sh`. With `-ngl 100` and `-c 8192`, `llama-server` offloaded 28/28 layers and used about 27.5 GiB VRAM. A short OpenAI-compatible chat smoke completed, and the React UI now has a `Pretrained chat` view that calls the local proxy, saves run artifacts under `artifacts/chat/`, and is privately reachable over Tailscale at `http://100.99.1.30:5173/`.
+
 ## What Was Tested
 
 - Official MoonshotAI/Kimi-Linear repo at `8c1d85eb6b5f8fcefb15758691b0ce50b0827ce3`.

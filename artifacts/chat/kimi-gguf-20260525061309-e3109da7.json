@@ -1,0 +1,53 @@
+{
+  "runId": "kimi-gguf-20260525061309-e3109da7",
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "Answer in one sentence."
+      },
+      {
+        "role": "user",
+        "content": "What is the main idea behind Kimi Linear?"
+      }
+    ],
+    "parameters": {
+      "temperature": 0.2,
+      "topP": 0.9,
+      "maxTokens": 80
+    }
+  },
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Kimi Linear is a linear-time attention mechanism that scales efficiently with sequence length by leveraging recurrence and linear algebra to reduce computational complexity from quadratic to linear."
+        }
+      }
+    ],
+    "created": 1779689589,
+    "model": "Kimi-Linear-48B-A3B-Instruct.MXFP4_MOE.gguf",
+    "system_fingerprint": "b8122-a46782c1b",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 31,
+      "prompt_tokens": 26,
+      "total_tokens": 57
+    },
+    "id": "chatcmpl-iMP1ri5PJHrVwgWot0XcBLxdRnuVDbyX",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 26,
+      "prompt_ms": 38.848,
+      "prompt_per_token_ms": 1.4941538461538462,
+      "prompt_per_second": 669.2751235584843,
+      "predicted_n": 31,
+      "predicted_ms": 204.757,
+      "predicted_per_token_ms": 6.6050645161290324,
+      "predicted_per_second": 151.3989753708054
+    }
+  }
+}

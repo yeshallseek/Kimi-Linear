@@ -8,10 +8,13 @@ artifacts/checkpoints/
 artifacts/datasets/
 artifacts/models/
 artifacts/tmp/
+models/
+runtime/
 *.safetensors
 *.ckpt
 *.pt
 *.pth
+*.gguf
 
 # UI workspace
 ui/node_modules/

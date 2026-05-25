@@ -1,0 +1,53 @@
+{
+  "runId": "kimi-gguf-20260525061543-d31c9db0",
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are Kimi Linear 48B-A3B Instruct running locally through a GGUF quant. Answer directly and note uncertainty."
+      },
+      {
+        "role": "user",
+        "content": "Explain what makes Kimi Delta Attention different from standard attention in 5 bullets."
+      }
+    ],
+    "parameters": {
+      "temperature": 0.7,
+      "topP": 0.9,
+      "maxTokens": 256
+    }
+  },
+  "response": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "- **Sliding-window locality**: Kimi Delta Attention only looks at a fixed-size “window” of recent tokens around the current position, instead of the full context, drastically cutting memory and compute.\n- **Delta encoding**: It stores the attention scores relative to the current token (a “delta”) rather than absolute dot-product similarities, which reduces parameter count and improves efficiency.\n- **Hierarchical compression**: The window is compressed into a small summary vector before being combined with the delta, so the model can still “see” farther context without holding all prior keys/values in memory.\n- **Dynamic window size**: The window length can expand or shrink on the fly depending on how far back the model needs to look, balancing accuracy and cost.\n- **Cache reuse**: Older keys/values are evicted from the cache once they fall out of the window, keeping memory usage bounded regardless of sequence length."
+        }
+      }
+    ],
+    "created": 1779689744,
+    "model": "Kimi-Linear-48B-A3B-Instruct.MXFP4_MOE.gguf",
+    "system_fingerprint": "b8122-a46782c1b",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 182,
+      "prompt_tokens": 54,
+      "total_tokens": 236
+    },
+    "id": "chatcmpl-rPMwJD2mAbAVGevlmPcOAv4ZhAbGFuy2",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 54,
+      "prompt_ms": 66.277,
+      "prompt_per_token_ms": 1.2273518518518518,
+      "prompt_per_second": 814.7622855590929,
+      "predicted_n": 182,
+      "predicted_ms": 1224.384,
+      "predicted_per_token_ms": 6.727384615384615,
+      "predicted_per_second": 148.6461763629711
+    }
+  }
+}
